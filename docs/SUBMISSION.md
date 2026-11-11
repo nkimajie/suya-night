@@ -96,7 +96,7 @@ Best Accessibility Forward Experience (seated, one-hand play, adjustable counter
 every line, relaxed Story mode timers, doneness not shown by colour alone, a judge pass to any night).
 
 ## Gallery images (3:2, 1500×1000, first = thumbnail)
-`docs/gallery/1-hand-it-over.png` (thumbnail), then 2 → 7 in order. Regenerate with `npm run shots`.
+`docs/gallery/1-hand-it-over.png` (thumbnail), then 2 → 8 in order (2 = the Lagos handshake). Regenerate with `npm run shots`.
 
 ## Target launch date
 [e.g. Q1 2027 on the Meta Horizon Store as a WebXR / PWA title]

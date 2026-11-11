@@ -122,9 +122,10 @@ All captured in Meta's Quest 3 emulator (IWER) from the seated eye, with tracked
 |---|---|
 | ![Fanning the coals](docs/screenshots/03-fan-the-coals.png) Fan the coals | ![Grilling with the tutorial arrow](docs/screenshots/04-grill.png) Grill and turn |
 | ![Shaking the yaji](docs/screenshots/05-yaji-shake.png) Shake the yaji | ![Taking the naira](docs/screenshots/07-paid.png) Get paid |
+| ![Lagos handshake](docs/screenshots/13-handshake.png) Mama Nkechi's Lagos handshake: slap, then snap | ![Every upgrade on the stall](docs/screenshots/11-grown-stall.png) Every upgrade on the stall, the rival across the road |
 | ![NEPA blackout](docs/screenshots/08-blackout.png) NEPA takes the light | ![The landlord](docs/screenshots/02-story-landlord.png) The landlord's ultimatum |
 | ![Shop](docs/screenshots/09-shop.png) Papa's savings tin | ![Map](docs/screenshots/10-map.png) The road ahead |
-| ![Grown stall](docs/screenshots/11-grown-stall.png) Every upgrade on the stall, the rival across the road | ![Results](docs/screenshots/12-results.png) Stars and savings |
+| ![Results](docs/screenshots/12-results.png) Stars and savings | ![The menu](docs/screenshots/01-menu.png) Poke to start — hands only |
 
 Devpost gallery versions (3:2, captioned) are in [docs/gallery/](docs/gallery/).
 

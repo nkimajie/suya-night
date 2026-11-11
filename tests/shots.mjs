@@ -4,7 +4,7 @@
 // Output: docs/screenshots/*.png. Not part of `npm test`.
 import { createServer } from 'vite';
 import puppeteer from 'puppeteer-core';
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -66,6 +66,10 @@ try {
   await waitFor(() => window.SUYA.game.money > 0);
   await sleep(250);
   await snap('07-paid');
+  // Mama Nkechi's Lagos handshake: the snap
+  await waitFor(() => window.SUYA.game.snaps >= 1, 20000);
+  await sleep(120);
+  await snap('13-handshake');
 
   // Night 2: NEPA takes light while the autopilot keeps cooking
   await ev(() => { window.SUYA.game.startNight(2); window.SUYA.game.elapsed = 92; });
@@ -123,14 +127,16 @@ try {
   // ---------------------------------------------------------------- Devpost gallery: 3:2, 1500x1000, captioned
   const GAL = path.join(root, 'docs/gallery');
   mkdirSync(GAL, { recursive: true });
+  for (const f of readdirSync(GAL)) if (f.endsWith('.png')) rmSync(path.join(GAL, f)); // numbering may change
   const gallery = [
     ['06-serve', '1-hand-it-over', 'Hand the wrap to the customer — then pinch the naira from her hand'],
-    ['03-fan-the-coals', '2-fan-the-coals', 'Pinch the woven fan and wave it: the coals flare and the embers fly'],
-    ['05-yaji-shake', '3-shake-the-yaji', 'Shake the yaji: 1–5 shakes = normal, 6+ = PLENTY pepper'],
-    ['08-blackout', '4-nepa-blackout', 'NEPA takes the light: cook by lantern while the queue waits'],
-    ['11-grown-stall', '5-grow-the-stall', 'Grow the business: every upgrade you buy appears on your stall'],
-    ['09-shop', '6-papas-savings', 'Rent first, the rest na your own: spend Papa’s savings in the shop'],
-    ['02-story-landlord', '7-the-landlord', 'Three nights to save Papa’s stall from Chief Adebayo'],
+    ['13-handshake', '2-lagos-handshake', 'Regulars greet you with a Lagos handshake: slap palms, then snap'],
+    ['03-fan-the-coals', '3-fan-the-coals', 'Pinch the woven fan and wave it: the coals flare and the embers fly'],
+    ['05-yaji-shake', '4-shake-the-yaji', 'Shake the yaji: 1–5 shakes = normal, 6+ = PLENTY pepper'],
+    ['08-blackout', '5-nepa-blackout', 'NEPA takes the light: cook by lantern while the queue waits'],
+    ['11-grown-stall', '6-grow-the-stall', 'Grow the business: every upgrade you buy appears on your stall'],
+    ['09-shop', '7-papas-savings', 'Rent first, the rest na your own: spend Papa’s savings in the shop'],
+    ['02-story-landlord', '8-the-landlord', 'Three nights to save Papa’s stall from Chief Adebayo'],
   ];
   for (const [from, name, caption] of gallery) {
     const b64 = readFileSync(path.join(OUT, from + '.png')).toString('base64');
