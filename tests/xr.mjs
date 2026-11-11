@@ -68,10 +68,52 @@ try {
     for (let i = 0; i < 30; i++) { await moveTo(c.clone().add(new THREE.Vector3(i % 2 ? 0.12 : -0.12, 0, 0))); }
     await pinch(0);
     out.heatAfterFan = +k.heat.toFixed(2);
+
+    // shop: poke a tile, then the Buy button, with the emulated index fingertip
+    const tipTo = async (local) => {
+      for (let i = 0; i < 8; i++) {
+        await frames(2);
+        const p = ptr(); if (!p) return;
+        const diff = local.clone().sub(p.tip).applyQuaternion(world.quaternion);
+        if (diff.length() < 0.003) return;
+        hand.position.x += diff.x; hand.position.y += diff.y; hand.position.z += diff.z;
+      }
+    };
+    const inv = world.quaternion.clone().invert();
+    const poke = async (btn) => {
+      const pos = world.worldToLocal(btn.group.getWorldPosition(new THREE.Vector3()));
+      const nrm = btn.group.getWorldDirection(new THREE.Vector3()).applyQuaternion(inv);
+      await tipTo(pos.clone().addScaledVector(nrm, 0.05));
+      await tipTo(pos.clone().addScaledVector(nrm, -0.015));
+      await frames(4);
+      await tipTo(pos.clone().addScaledVector(nrm, 0.06));
+      await frames(4);
+    };
+    game.save.savings = 10000;
+    game.showShop(() => game.showMenu());
+    await frames(4);
+    await poke(game.board.tiles.find((t) => t.id === 'tin'));
+    out.pokedTile = game.shopSel;
+    await poke(game.board.buttons[0]);
+    out.pokedBuy = !!game.save.upgrades.tin;
     return out;
   });
   console.log(JSON.stringify(r));
   await page.screenshot({ path: path.join(root, 'tests/shot-xr.png') });
+
+  // Demo autopilot (used to record the trailer): it must play the Night 1 tutorial order end to end
+  // with emulated hands: fan, grill, turn, paper, yaji, onions, wrap, serve, take the naira.
+  await page.goto('http://localhost:5198/?emulate=1&demo=1&night=1', { waitUntil: 'load' });
+  await page.waitForFunction(() => window.SUYA_XR && !document.getElementById('enter').disabled, { timeout: 20000 });
+  await page.evaluate(() => { try { localStorage.clear(); } catch {} });
+  await page.click('#enter');
+  await page.waitForFunction(() => window.SUYA.renderer.xr.isPresenting, { timeout: 15000 });
+  const demoOk = await page.waitForFunction(() => window.SUYA.game.money >= 2500 && !window.SUYA.game.tutorial, { timeout: 150000, polling: 500 }).then(() => true).catch(() => false);
+  r.demoMoney = await page.evaluate(() => window.SUYA.game.money);
+  r.demoRating = await page.evaluate(() => window.SUYA.game.rating());
+  await page.evaluate(() => window.SUYA_DEMO?.stop());
+  r.demoOk = demoOk;
+  console.log('demo:', r.demoMoney, r.demoRating);
   const checks = [
     ['hand tracking detected', r.handsSeen],
     ['stall recentred on head', r.recenterError < 0.05],
@@ -79,6 +121,9 @@ try {
     ['release places it on the grill', r.onGrill === 1],
     ['hand pinch picks up the fan', r.fanHeld],
     ['waving the fan heats the coals', r.heatAfterFan > 0.3],
+    ['fingertip poke selects a shop tile', r.pokedTile === 'tin'],
+    ['fingertip poke on Buy buys it', r.pokedBuy],
+    ['demo autopilot serves the tutorial order (5★)', r.demoOk && r.demoRating >= 5],
     ['no console errors', errors.length === 0],
   ];
   for (const [name, ok] of checks) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`); if (!ok) failed = true; }

@@ -13,14 +13,16 @@ After the deadline the build is frozen and must stay hosted through judging.
 - **Quick in, quick out.** Cold start to cooking in under a minute. A night is ~4–5 min.
   Pause when the headset is taken off / the system menu opens; resume cleanly.
 - **Original content only.** No real brands, company names, logos or real people
-  (the landlord's fast-food chain is the fictional "Crunchy King"). Respect Meta
+  (the fast-food rival is the fictional "Gbam Burger"; the ride-hail drivers are "OyaGo").
+  Respect Meta
   Developer Content Guidelines: no slurs, no mocking religion or ethnic groups.
 
 ## Tech
 - three.js + Vite, plain ES modules (no TypeScript, no framework). WebXR `immersive-vr`
   with `hand-tracking` as an optional feature.
 - All art is procedural (primitives + canvas textures); all audio is procedural Web Audio.
-  No binary assets unless there is a strong reason.
+  No binary assets unless there is a strong reason. Exceptions: `public/hands/*.glb` (MIT hand
+  meshes, so judges never depend on a CDN), app icons and `og.png`.
 - `src/input.js` turns hands / controllers / mouse into one `Pointer` API
   (`pos`, `pinching`, `pinchStarted`, `pinchEnded`, `palmVel`). Gameplay code must only
   use that API so desktop testing exercises the same logic as VR.
@@ -39,7 +41,12 @@ After the deadline the build is frozen and must stay hosted through judging.
   `tests/smoke.mjs` plays the full Night 1 tutorial order through the scripted pointer and
   checks nights 2–3 (`CAM=head` renders screenshots from the seated eye to `tests/shot-*.png`);
   `tests/xr.mjs` enters VR in Meta's IWER Quest 3 emulator (`?emulate=1`, dev only) and
-  grabs/places/fans with emulated tracked hands.
+  grabs/places/fans with emulated tracked hands, then lets the demo autopilot play the tutorial.
+  Smoke also checks seated reach of every interactable and flat GPU memory over 24 customers.
+- `npm run shots` — README screenshots (`docs/screenshots`), Devpost gallery (`docs/gallery`, 3:2),
+  `public/og.png` and app icons, rendered in the IWER emulator while the autopilot plays.
+- `?emulate=1&demo=1[&night=N|&scene=shop]` (dev) — the game plays itself with emulated hands
+  (`src/demo.js`); used to record the trailer without a headset. `?cam=street&demo=1` = B-roll.
 - Hand pinches drift several cm while the fingers close; grabs use `Pointer.candidates()`
   (open-finger aim point first). Keep that when adding new grabbable things.
 

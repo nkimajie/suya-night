@@ -3,20 +3,23 @@
 
 export const CY = -0.42; // counter top height relative to the seated head
 
+// Everything you touch stays within ~0.6 m of the head (seated two-foot rule); tests/smoke.mjs checks it.
 export const LAYOUT = {
   counter: { x0: -0.58, x1: 0.58, z0: -0.80, z1: -0.20 },
-  tray: { x: -0.40, z: -0.46, w: 0.27, d: 0.30 },          // raw skewer tray
+  tray: { x: -0.36, z: -0.46, w: 0.25, d: 0.30 },          // raw skewer tray
   grill: { x: -0.02, z: -0.47, w: 0.34, d: 0.30, h: 0.12 }, // grate top = CY + h
-  board: { x: 0.32, z: -0.40, w: 0.27, d: 0.23 },
-  bowls: { z: -0.635, xs: [0.20, 0.29, 0.38, 0.47], r: 0.04 },
-  shaker: { x: 0.175, z: -0.27 },
+  board: { x: 0.33, z: -0.44, w: 0.27, d: 0.23 },          // newspaper on the cutting board
+  bowls: { z: -0.27, xs: [0.27, 0.35, 0.43, 0.51], r: 0.038 }, // sides: a row in front of the paper (clear of the shaker)
+  shaker: { x: 0.155, z: -0.275 },
   bin: { x: -0.5, z: -0.25, r: 0.05 },
   fan: { x: -0.29, z: -0.255 },        // woven hand fan: handle end; blade lies in front of the tray
-  tin: { x: 0.47, z: -0.26 },
-  customerZ: -1.05,
-  handZ: -0.70,
+  tin: { x: 0.52, z: -0.58 },          // tip tin (shop upgrade), behind-right of the paper (look, don't touch)
+  customerZ: -1.0,
+  handZ: -0.64,                        // where customers hold out their hand / the naira
   slots: [-0.32, 0.0, 0.32],
 };
+// Tray compartments left -> right: the two Night 1 meats sit nearest the grill (and the hand).
+export const TRAY_ORDER = ['kidney', 'gizzard', 'ram', 'chicken', 'beef'];
 
 export const MEATS = {
   beef:    { name: 'Beef',    price: 2500, raw: 0x9a2424, cooked: 0x6e3518, shape: 'chunk' },
@@ -47,24 +50,8 @@ export function pepperLevel(shakes) {
 export const HEAT = { start: 0.75, decay: 0.014, floor: 0.12, low: 0.3 }; // full -> floor in ~60 s
 export const COOK = { GOLDEN: 0.5, BURNT: 1.05, baseRate: 0.11 };
 
-export const NIGHTS = [
-  {
-    id: 1, title: 'The First Night', duration: 300, target: 15000,
-    meats: ['beef', 'chicken'], sides: ['onions', 'cabbage', 'tomatoes'],
-    concurrent: 1, maxSkewers: 1, patience: 95, gap: [4, 8],
-  },
-  {
-    id: 2, title: 'Friday Rush', duration: 300, target: 30000,
-    meats: MEAT_ORDER, sides: SIDE_ORDER,
-    concurrent: 2, maxSkewers: 2, patience: 100, gap: [3, 7],
-    blackout: { start: 95, end: 165 },
-  },
-  {
-    id: 3, title: 'The Inspection', duration: 300, target: 40000, minRating: 3.5,
-    meats: MEAT_ORDER, sides: SIDE_ORDER,
-    concurrent: 2, maxSkewers: 3, patience: 100, gap: [2, 6],
-  },
-];
+// Per-night tuning, scripts and tips live in levels.js.
+
 
 // Difficulty multipliers. Story mode is the default so anyone can finish.
 export const MODES = {

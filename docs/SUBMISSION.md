@@ -1,81 +1,100 @@
 # Devpost submission: Suya Night
 
 Copy each block into the matching form field. Replace anything in [brackets].
+All text must be in English (it is; Pidgin lines are always shown as text in speech bubbles).
 
 ## Submission name
 Suya Night
 
-## Tagline (131 / 140 characters)
-Dad's in hospital. The landlord wants his suya stand. You have 3 nights to grill, spice and serve Lagos with your bare hands in VR.
+## Tagline (≤ 140 characters)
+Recommended (131): Dad's in hospital. The landlord wants his suya stand. You have 3 nights to grill, spice and serve Lagos with your bare hands in VR.
 
-## Track
-Gaming
+Alternative (128): Fan the coals, grill, spice and wrap Lagos suya with your bare hands. Save Papa's stall in 3 nights. No controllers. No install.
 
-## Division
-New Experience (conceived and built inside the competition window)
+## Track / Division
+Gaming · New Experience (conceived and built inside the competition window)
 
 ## Build link
-[GitHub Pages URL, e.g. https://<user>.github.io/suya-night/]
-Open it in the Meta Quest Browser and tap **Enter VR (hands)**.
+[https://<user>.github.io/<repo>/] — open it in the Meta Quest Browser and tap **Enter VR (hands)**.
 
 ## Video
-[YouTube/Vimeo link, public, under 3:00]
+[YouTube link, public, under 3:00]
 
-## Description (about 430 words)
+## Description (≈ 480 words; Devpost suggests ≤ 500)
 
 **Inspiration**
-On almost every street in Lagos, when the sun goes down, a suya man lights his charcoal.
-The smoke, the yaji pepper, the onions, the newspaper wrap, the Pidgin banter with
-regulars: it is one of the most loved food rituals in Nigeria, and it is done
-entirely with the hands. That made it a natural fit for hands-first VR. We wanted a game
-that feels like a real place and a real job, not a generic kitchen.
+When the sun goes down in Lagos, the suya man lights his charcoal. The smoke, the yaji pepper, the
+onions, the newspaper wrap, the Pidgin banter with regulars: a beloved ritual done entirely by
+hand. That made it a natural fit for hands-first VR.
 
 **The game**
-Aminu's father, Mallam Sani, has run the most famous suya spot on Allen Avenue for thirty
-years. Tonight he is in hospital, and the landlord, Chief Adebayo, gives Aminu three nights
-to prove the stall can make money before he hands it to a fast-food chain.
+Aminu's father, Mallam Sani, has run the most famous suya spot on Allen Avenue for thirty years.
+Tonight he is in hospital, and the landlord gives Aminu three nights to prove the stall can make money.
 
-Each night is a five-minute shift. Customers walk up and say their order out loud, and an
-order card appears on the counter. You pick up a woven fan and wave it over the coals to keep them hot,
-pinch skewers from the tray and lay them on the grill, then turn them before they burn.
-You slide the meat onto newspaper, shake yaji until the pepper is right ("no pepper for
-madam o!"), add onions, cabbage, tomatoes or masa, lift the newspaper to wrap it, and hand
-it to the customer. Then you pinch the naira note out of their hand.
+Customers walk up and say their order. You pinch a woven fan and wave it over the coals to keep them
+hot, lay skewers on the grill and turn them before they burn, slide the meat onto newspaper, shake
+yaji until the pepper is right ("no pepper for madam o!"), add onions or masa, lift the paper to wrap
+it, hand it over, and pinch the naira out of the customer's hand. A soft ring always shows what your
+hand will grab, so real hand tracking feels precise.
 
-Night 1 is a guided tutorial with Mama Nkechi, your father's oldest customer. Night 2 is
-the Friday rush: all five meats, two customers at a time, and NEPA takes the light, so you
-cook by lantern. Night 3 is the inspection. The landlord comes to taste, and the quiet man
-in the black cap who has been watching all along finally orders.
+Act 1 is three nights: a tutorial with Mama Nkechi, a Friday rush with a NEPA blackout cooked by
+lantern, and the landlord's inspection. Act 2, "The Spot Grows", adds five nights of building the
+business: stars, savings ("rent first, the rest na your own"), six upgrades that appear on your stall,
+regulars who become family, bank-transfer customers whose alert is sometimes "pending", a driver
+rush, and a fast-food rival opening a "Suya Burger" shop across the road.
 
 **How we built it**
-Suya Night is a WebXR app built with three.js and Vite, so it runs in the Quest Browser
-from a link. Every model, texture and sound is procedural: the characters, the street,
-the Afrobeats loop drifting from the phone shop next door, the sizzle and the generator
-hum. A single input layer turns hand tracking, controllers or a mouse into the same
-pinch/poke/palm-velocity API, so every interaction is tested headlessly on desktop with
-the same code path the hands use.
+Suya Night is a WebXR app (three.js + Vite) that runs in the Quest Browser from a link, about 240 KB
+to download. Every model, texture and sound is generated in code: the characters, the street, the
+Afrobeats drifting from the phone shop next door, the sizzle and the generator hum. One input layer
+turns hands, controllers or a mouse into the same pinch/poke API, so automated tests in Meta's IWER
+emulator play the full tutorial with emulated hands, check that everything you touch stays within
+seated reach, and check memory stays flat over a long session.
 
-**Designed for the competition guidelines**
-- Hands only, end to end, including menus, story, pause and retry.
-- Seated, with everything within a two-foot radius of your head.
-- A full night takes about 5 minutes. The whole story takes about 20.
-  Taking the headset off pauses the game.
+**Designed for the guidelines**
+- Hands only, end to end: menus, story, cooking, pause and retry.
+- Seated: everything within about 60 cm of your head, nothing behind you or on the floor.
+- Narrow field of view: time and money sit on the counter right under your eyes; tutorial labels
+  sit on the object you need.
+- Quick in, quick out: first cooking action in about 40 seconds; a night is 5 minutes; removing the
+  headset pauses.
+- A reason to come back: 1–3 stars per night, savings, visible upgrades, loyal regulars and a daily special.
 
 **What's next**
-Recorded Pidgin voice acting, a free-play "open late" mode, more regulars and their side
-stories, mixed-reality mode that puts the grill on your real table, and leaderboards for the
-busiest night.
+Stage 3 is already teased in the game: catering Mama Nkechi's daughter's owambe wedding. After that:
+match night at a Surulere viewing centre, a Yaba campus spot, a sit-down Suya House in Lekki, and
+the kilishi masters of Kano.
+
+## Testing instructions (paste into the testing / notes field)
+
+1. On a Meta Quest 3 or 3S, open the build link in the **Quest Browser**. Sound on.
+2. Put the controllers down. Tap **Enter VR (hands)**. If the browser asks about hand tracking, tap **Allow**.
+3. Sit. If the stall is not in front of you, hold the Meta button to recenter.
+4. Poke **New story** with a fingertip (or pinch it). Night 1 is a guided tutorial (~5 min).
+5. **Pause** is the small button on the counter edge, left of the time/money display. Removing the headset also pauses.
+6. **Short on time?** Main menu → **Settings → Open all nights**, then **Map & shop**: jump to Night 2
+   (blackout about 1.5 min in), Night 5 (driver rush), Night 7 (the rival) or Night 8 (finale), and try the shop
+   (₦30,000 added).
+7. Settings → Story mode (relaxed, default) / Rush mode (hard). Voices are off by default; speech bubbles always show.
+8. Note: a pinch with your palm facing you opens the Quest system menu; the game pauses and resumes.
 
 ## Hand interactions (optional field)
-Every action is a natural hand gesture, with no buttons to learn. You pinch a woven hand fan and wave
-it over the grill, and how fast you wave drives the heat, the glowing coals and the embers. Pinch to pick
-up skewers, sides and the yaji shaker. Turning a skewer is pinch-lift-place. Shaking is
-detected from direction reversals of your pinching hand, and the number of shakes sets
-none / normal / plenty pepper. Lifting the newspaper wraps the order. Handing over is a
-real hand-to-hand exchange. Menus use fingertip pokes. A small dot shows each pinch point
-and turns gold when you pinch, so you always know what you are about to grab. What excites
-us about VR is exactly this: ordinary, skilled, everyday hand work, such as cooking, becoming
-something anyone can step into and feel.
+Every action is a natural hand gesture. Pinch the woven fan and wave it over the grill: how fast you
+wave drives the heat, the glowing coals and the embers. Pinch to pick up skewers, sides and the yaji
+shaker; turning a skewer is pinch, lift, place. Shaking is detected from direction reversals of the
+pinching hand, and the number of shakes sets none / normal / plenty pepper. Lifting the newspaper
+wraps the order, and serving is a real hand-to-hand exchange: you let go near the customer's open
+hand, then pinch the naira from it. A soft ring shows what each hand would grab, the pinch point
+glows gold while pinching, and pinches use the point where your fingers were last open, so the few
+centimetres of drift as fingers close never costs you a grab. Menus are fingertip pokes.
+
+## Special awards this entry fits
+Boldest Original Concept · Best First Five Minutes · Best Reason to Come Back ·
+Best Accessibility Forward Experience (Story mode, seated, text for every line, relaxed timers,
+a judge pass to any night).
+
+## Gallery images (3:2, 1500×1000, first = thumbnail)
+`docs/gallery/1-hand-it-over.png` (thumbnail), then 2 → 7 in order. Regenerate with `npm run shots`.
 
 ## Target launch date
 [e.g. Q1 2027 on the Meta Horizon Store as a WebXR / PWA title]

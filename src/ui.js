@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CY, naira } from './config.js';
-import { makePanel, FONT, roundRect, wrapText, fitFont } from './text.js';
+import { makePanel, FONT, roundRect, wrapText, fitFont, countLines } from './text.js';
 import { audio } from './audio.js';
 
 const _v = new THREE.Vector3();
@@ -31,9 +31,9 @@ export class Button {
       c.lineWidth = 5; c.strokeStyle = '#2a1408'; c.stroke();
       c.fillStyle = textColor; c.textAlign = 'center';
       if (sub) {
-        c.font = FONT(h * 0.36, 800); c.fillText(label, w / 2, h * 0.5);
-        c.font = FONT(h * 0.2, 600); c.fillText(sub, w / 2, h * 0.8);
-      } else { c.font = FONT(h * 0.42, 800); c.fillText(label, w / 2, h * 0.64); }
+        fitFont(c, label, w * 0.9, h * 0.34, 800); c.fillText(label, w / 2, h * 0.47);
+        fitFont(c, sub, w * 0.9, h * 0.22, 700); c.fillText(sub, w / 2, h * 0.8);
+      } else { fitFont(c, label, w * 0.9, h * 0.42, 800); c.fillText(label, w / 2, h * 0.64); }
     });
   }
   update(dt, pointers, world) {
@@ -47,7 +47,8 @@ export class Button {
       // pointer positions are stall-local -> world -> button-local
       const tip = _v.copy(p.tip); world.localToWorld(tip); tip.applyMatrix4(_inv);
       const inXY = Math.abs(tip.x) < this.w / 2 + 0.005 && Math.abs(tip.y) < this.h / 2 + 0.005;
-      const prev = this.prevZ.has(p) ? this.prevZ.get(p) : 1;
+      // a new button never counts a fingertip that is already through it (boards rebuild under your finger)
+      const prev = this.prevZ.has(p) ? this.prevZ.get(p) : tip.z;
       this.prevZ.set(p, tip.z);
       if (inXY && tip.z < 0.06 && tip.z > -0.05) hover = true;
       if (this.cool > 0 || p.consumed) continue;
@@ -82,46 +83,78 @@ export class Board {
     this.panel.userData.noRay = false;
     this.group.add(this.panel);
     this.buttons = [];
+    this.tiles = [];
     this.group.visible = false;
   }
-  show({ title = '', speaker = '', text = '', footer = '', accent = '#ffb347', buttons = [], portrait = null, big = '' }) {
+  // grid: { cols, tiles: [{ label, sub, onPress, style }] } adds a block of big pokeable tiles
+  // between a compact header (title + up to 2 lines) and the bottom button row.
+  show({ title = '', speaker = '', text = '', footer = '', accent = '#ffb347', buttons = [], big = '', grid = null }) {
     this.group.visible = true;
+    const compact = !!grid;
     this.panel.redraw((c, w, h) => {
       roundRect(c, 4, 4, w - 8, h - 8, 34);
       const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(38,20,10,0.95)'); g.addColorStop(1, 'rgba(20,10,5,0.95)');
       c.fillStyle = g; c.fill(); c.lineWidth = 8; c.strokeStyle = accent; c.stroke();
-      let y = h * 0.14;
       c.textAlign = 'center';
-      if (title) { c.fillStyle = accent; c.font = FONT(h * 0.095, 900); c.fillText(title, w / 2, y); y += h * 0.1; }
+      if (compact) {
+        c.fillStyle = accent; fitFont(c, title, w * 0.9, h * 0.08, 900); c.fillText(title, w / 2, h * 0.11);
+        if (text) { c.fillStyle = '#f6e7d0'; c.font = FONT(h * 0.048, 600); wrapText(c, text, w / 2, h * 0.18, w * 0.9, h * 0.056, 'center'); }
+        return;
+      }
+      let y = h * 0.14;
+      if (title) { c.fillStyle = accent; fitFont(c, title, w * 0.92, h * 0.095, 900); c.fillText(title, w / 2, y); y += h * 0.1; }
       if (big) { c.fillStyle = '#fff3d6'; c.font = FONT(h * 0.07, 800); y = wrapText(c, big, w / 2, y + h * 0.02, w * 0.88, h * 0.085, 'center'); }
       if (speaker) { c.fillStyle = '#ffcf7a'; c.font = FONT(h * 0.06, 800); c.textAlign = 'left'; c.fillText(speaker.toUpperCase(), w * 0.06, y + h * 0.02); y += h * 0.09; }
-      if (text) { c.fillStyle = '#f6e7d0'; c.font = FONT(h * 0.058, 600); y = wrapText(c, text, speaker ? w * 0.06 : w / 2, y + h * 0.02, w * 0.88, h * 0.075, speaker ? 'left' : 'center'); }
+      if (text) {
+        // shrink long text so it never runs under the buttons
+        let fs = 0.058;
+        c.font = FONT(h * fs, 600);
+        while (fs > 0.04 && countLines(c, text, w * 0.88) * fs * 1.3 * h > h * 0.72 - y) { fs *= 0.93; c.font = FONT(h * fs, 600); }
+        c.fillStyle = '#f6e7d0'; y = wrapText(c, text, speaker ? w * 0.06 : w / 2, y + h * 0.02, w * 0.88, h * fs * 1.3, speaker ? 'left' : 'center');
+      }
       if (footer) { c.fillStyle = 'rgba(246,231,208,0.6)'; c.font = FONT(h * 0.04, 600); c.textAlign = 'center'; c.fillText(footer, w / 2, h * 0.95); }
     });
-    for (const b of this.buttons) { this.group.remove(b.group); b.dispose(); }
-    this.buttons = [];
+    for (const b of [...this.buttons, ...this.tiles]) { this.group.remove(b.group); b.dispose(); }
+    this.buttons = []; this.tiles = [];
     const n = buttons.length;
     const bw = Math.min(0.2, (this.W - 0.06) / Math.max(1, n) - 0.02), bh = 0.058;
+    const rowY = -this.H / 2 + bh / 2 + 0.035;
     buttons.forEach((def, i) => {
       const b = new Button(def.label, bw, bh, def.onPress, def.style || {});
-      b.group.position.set((i - (n - 1) / 2) * (bw + 0.02), -this.H / 2 + bh / 2 + 0.035, 0.01);
+      b.group.position.set((i - (n - 1) / 2) * (bw + 0.02), rowY, 0.01);
       this.group.add(b.group);
       this.buttons.push(b);
     });
+    if (grid && grid.tiles.length) {
+      const cols = grid.cols || 3, rows = Math.ceil(grid.tiles.length / cols);
+      const top = this.H / 2 - 0.105, bottom = rowY + bh / 2 + 0.01, gap = 0.012;
+      const th = Math.min(0.072, (top - bottom - gap * (rows - 1)) / rows);
+      const tw = Math.min(0.2, (this.W - 0.05) / cols - gap);
+      grid.tiles.forEach((def, i) => {
+        const r = Math.floor(i / cols), col = i % cols;
+        const inRow = Math.min(cols, grid.tiles.length - r * cols);
+        const t = new Button(def.label, tw, th, def.onPress, { sub: def.sub || '', ...(def.style || {}) });
+        t.group.position.set((col - (inRow - 1) / 2) * (tw + gap), top - th / 2 - r * (th + gap), 0.01);
+        t.id = def.id;
+        this.group.add(t.group);
+        this.tiles.push(t);
+      });
+    }
   }
   hide() { this.group.visible = false; }
   update(dt, pointers) {
     if (!this.group.visible) return;
-    for (const b of this.buttons.slice()) if (b.update(dt, pointers, this.world)) break;
+    for (const b of [...this.tiles, ...this.buttons]) if (b.update(dt, pointers, this.world)) break;
   }
 }
 
-// Chalkboard HUD on the left post.
+// Chalkboard HUD, top-right of the view (~30° right, ~15° up): inside a narrow field of view
+// and above the customers' speech bubbles.
 export class Hud {
   constructor(world) {
     this.panel = makePanel(0.2, 0.15, { pxPerM: 1500 });
-    this.panel.position.set(0.56, 0.04, -0.6);
-    this.panel.rotation.set(-0.05, -0.75, 0, 'YXZ');
+    this.panel.position.set(0.36, 0.16, -0.62);
+    this.panel.rotation.set(-0.2, -0.52, 0, 'YXZ');
     this.panel.userData.noRay = true;
     world.add(this.panel);
     this.last = '';
@@ -137,17 +170,31 @@ export class Hud {
       c.fillText(`NIGHT ${d.night}`, w * 0.07, h * 0.17);
       c.textAlign = 'right'; c.fillText(d.time, w * 0.93, h * 0.17);
       c.textAlign = 'left';
-      c.fillStyle = d.money >= d.target ? '#8ff09a' : '#ffe08a'; c.font = FONT(h * 0.16, 900); c.fillText(naira(d.money), w * 0.07, h * 0.42);
-      if (d.combo > 1) { c.textAlign = 'right'; c.fillStyle = '#ffb347'; c.font = FONT(h * 0.11, 900); c.fillText(`COMBO ×${d.combo}`, w * 0.93, h * 0.41); c.textAlign = 'left'; }
+      c.fillStyle = d.money >= d.target ? '#8ff09a' : '#ffe08a'; fitFont(c, naira(d.money), d.combo > 1 ? w * 0.5 : w * 0.86, h * 0.16, 900); c.fillText(naira(d.money), w * 0.07, h * 0.42);
+      if (d.combo > 1) { c.textAlign = 'right'; c.fillStyle = '#ffb347'; fitFont(c, `COMBO ×${d.combo}`, w * 0.34, h * 0.11, 900); c.fillText(`COMBO ×${d.combo}`, w * 0.93, h * 0.41); c.textAlign = 'left'; }
       c.fillStyle = '#c8d6c0'; c.font = FONT(h * 0.085, 600); c.fillText(`Target ${naira(d.target)}`, w * 0.07, h * 0.56);
-      // progress bar
-      const pf = Math.min(1, d.money / d.target);
-      c.fillStyle = 'rgba(255,255,255,0.15)'; c.fillRect(w * 0.07, h * 0.62, w * 0.86, h * 0.06);
-      c.fillStyle = pf >= 1 ? '#8ff09a' : '#ffb347'; c.fillRect(w * 0.07, h * 0.62, w * 0.86 * pf, h * 0.06);
+      // progress bar to 150% of the target, with a ★ at each night-star step
+      const steps = d.steps || [1, 1.25, 1.5], max = steps[steps.length - 1];
+      const pf = Math.min(1, d.money / (d.target * max));
+      const bx = w * 0.07, bw = w * 0.86, by = h * 0.62;
+      c.fillStyle = 'rgba(255,255,255,0.15)'; c.fillRect(bx, by, bw, h * 0.06);
+      c.fillStyle = d.money >= d.target ? '#8ff09a' : '#ffb347'; c.fillRect(bx, by, bw * pf, h * 0.06);
+      c.font = FONT(h * 0.085, 900); c.textAlign = 'center';
+      steps.forEach((st, i) => {
+        const x = bx + bw * (st / max) - (i === steps.length - 1 ? w * 0.025 : 0);
+        c.fillStyle = 'rgba(20,10,5,0.8)'; c.fillRect(bx + bw * (st / max) - 1.5, by - 2, 3, h * 0.06 + 4);
+        c.fillStyle = d.money >= d.target * st ? '#ffd34d' : 'rgba(255,255,255,0.35)'; c.fillText('★', x, by - h * 0.012);
+      });
+      c.textAlign = 'left';
       c.fillStyle = '#ffd34d'; c.font = FONT(h * 0.12, 700);
-      const stars = Math.round(d.rating * 2) / 2;
-      let s = ''; for (let i = 1; i <= 5; i++) s += stars >= i ? '★' : stars >= i - 0.5 ? '⯨' : '☆';
-      c.fillText(d.served ? s : '☆☆☆☆☆', w * 0.07, h * 0.86);
+      // rating stars, with a real half star (the ⯨ glyph is missing from many fonts)
+      const stars = d.served ? Math.round(d.rating * 2) / 2 : 0, sw = c.measureText('★').width;
+      for (let i = 0; i < 5; i++) {
+        const x = w * 0.07 + i * sw;
+        c.fillStyle = '#ffd34d'; c.fillText('☆', x, h * 0.86);
+        const fill = Math.max(0, Math.min(1, stars - i));
+        if (fill > 0) { c.save(); c.beginPath(); c.rect(x, 0, sw * fill, h); c.clip(); c.fillText('★', x, h * 0.86); c.restore(); }
+      }
       c.fillStyle = '#c8d6c0'; c.font = FONT(h * 0.075, 600); c.textAlign = 'right';
       c.fillText(d.served ? `${d.rating.toFixed(1)} (${d.served})` : 'no ratings', w * 0.93, h * 0.85);
     });
@@ -158,8 +205,8 @@ export class Hud {
 export class Notebook {
   constructor(world) {
     this.panel = makePanel(0.22, 0.17, { pxPerM: 1500 });
-    this.panel.position.set(-0.47, -0.04, -0.5);
-    this.panel.rotation.set(-0.25, 0.75, 0.0);
+    this.panel.position.set(-0.36, 0.15, -0.62);
+    this.panel.rotation.set(-0.2, 0.52, 0, 'YXZ');
     this.panel.userData.noRay = true;
     world.add(this.panel);
     this.panel.visible = false;
@@ -172,13 +219,20 @@ export class Notebook {
       for (let y = h * 0.22; y < h; y += h * 0.075) { c.beginPath(); c.moveTo(10, y); c.lineTo(w - 10, y); c.stroke(); }
       c.strokeStyle = 'rgba(200,60,60,0.4)'; c.beginPath(); c.moveTo(w * 0.08, 6); c.lineTo(w * 0.08, h - 6); c.stroke();
       c.fillStyle = '#5a2a0a'; fitFont(c, title, w * 0.85, h * 0.085); c.textAlign = 'left'; c.fillText(title, w * 0.11, h * 0.12);
+      const items = lines.map((ln, i) => ({ text: (done[i] ? '✓ ' : i === highlightIndex ? '▶ ' : '• ') + ln, cur: i === highlightIndex, done: done[i] }));
+      // shrink until everything fits above the bottom edge
+      let k = 1;
+      for (; k > 0.7; k -= 0.05) {
+        let y = h * 0.24;
+        for (const it of items) { c.font = FONT(h * (it.cur ? 0.068 : 0.058) * k, it.cur ? 800 : 600); y += h * 0.03 * k + countLines(c, it.text, w * 0.85) * h * (it.cur ? 0.075 : 0.065) * k; }
+        if (y < h * 0.95) break;
+      }
       let y = h * 0.24;
-      lines.forEach((ln, i) => {
-        const isCur = i === highlightIndex, isDone = done[i];
-        c.fillStyle = isDone ? 'rgba(40,90,40,0.75)' : isCur ? '#9a1a0a' : '#2a1a0a';
-        c.font = FONT(h * (isCur ? 0.068 : 0.058), isCur ? 800 : 600);
-        y = wrapText(c, (isDone ? '✓ ' : isCur ? '▶ ' : '• ') + ln, w * 0.11, y + h * 0.03, w * 0.85, h * (isCur ? 0.075 : 0.065));
-      });
+      for (const it of items) {
+        c.fillStyle = it.done ? 'rgba(40,90,40,0.75)' : it.cur ? '#9a1a0a' : '#2a1a0a';
+        c.font = FONT(h * (it.cur ? 0.068 : 0.058) * k, it.cur ? 800 : 600);
+        y = wrapText(c, it.text, w * 0.11, y + h * 0.03 * k, w * 0.85, h * (it.cur ? 0.075 : 0.065) * k);
+      }
     });
   }
   hide() { this.panel.visible = false; }
@@ -192,23 +246,40 @@ export class Highlight {
     ring.rotation.x = -Math.PI / 2; ring.renderOrder = 10;
     const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.035, 10), new THREE.MeshBasicMaterial({ color: 0xffe066, depthTest: false }));
     arrow.rotation.x = Math.PI; arrow.renderOrder = 10;
-    this.group.add(ring, arrow);
+    this.label = makePanel(0.15, 0.032, { pxPerM: 2000 });
+    this.label.material.depthTest = false; this.label.renderOrder = 11; this.label.visible = false;
+    this.group.add(ring, arrow, this.label);
     this.group.traverse((o) => { o.userData.noRay = true; });
     this.ring = ring; this.arrow = arrow;
     world.add(this.group);
+    this.world = world;
     this.group.visible = false;
+    this.text = '';
   }
-  at(pos, radius = 0.05) {
+  at(pos, radius = 0.05, text = '') {
     if (!pos) { this.group.visible = false; return; }
     this.group.visible = true;
     this.group.position.copy(pos);
     this.radius = radius;
+    if (text !== this.text) {
+      this.text = text;
+      this.label.visible = !!text;
+      if (text) this.label.redraw((c, w, h) => {
+        roundRect(c, 3, 3, w - 6, h - 6, h * 0.4); c.fillStyle = 'rgba(20,10,4,0.9)'; c.fill();
+        c.lineWidth = 5; c.strokeStyle = '#ffe066'; c.stroke();
+        c.fillStyle = '#ffe066'; fitFont(c, text, w * 0.9, h * 0.56, 900); c.textAlign = 'center'; c.fillText(text, w / 2, h * 0.68);
+      });
+    }
   }
-  update(t) {
+  update(t, headWorld) {
     if (!this.group.visible) return;
     const s = (this.radius / 0.05) * (1 + Math.sin(t * 5) * 0.12);
     this.ring.scale.set(s, s, s);
     this.arrow.position.y = 0.1 + Math.sin(t * 4) * 0.015;
+    if (this.label.visible) {
+      this.label.position.y = 0.15 + Math.sin(t * 4) * 0.012;
+      if (headWorld) { this.label.lookAt(headWorld); }
+    }
   }
 }
 

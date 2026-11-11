@@ -4,26 +4,82 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <meta name="theme-color" content="#120a06" />
-  <title>Suya Night</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E" />
+  <title>Suya Night — a hands-only VR cooking story from Lagos</title>
+  <meta name="description" content="Dad's in hospital. The landlord wants his suya stand. Grill, spice and serve Lagos with your bare hands in VR. Hands only, seated, plays in the Meta Quest Browser." />
+  <meta property="og:title" content="Suya Night" />
+  <meta property="og:description" content="A hands-only, seated VR cooking story from Lagos. Fan the charcoal, grill, shake the yaji, wrap it in newspaper and serve." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <style>
     html, body { margin: 0; height: 100%; background: #120a06; overflow: hidden;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #f6e7d0; }
     canvas { display: block; }
-    #overlay { position: fixed; left: 0; right: 0; bottom: 18px; display: flex;
-      flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
-    #enter { pointer-events: auto; font: 600 18px system-ui, sans-serif; padding: 14px 26px;
-      border-radius: 999px; border: 2px solid #ffb347; background: #2a1408; color: #ffd9a0;
-      cursor: pointer; }
-    #enter:disabled { opacity: .55; cursor: default; }
-    #hint { font-size: 13px; opacity: .8; text-align: center; max-width: 560px; padding: 0 16px; }
+    /* Wide screens: a compact card top-left, so the stall stays visible. Narrow: bottom sheet. */
+    #overlay { position: fixed; left: 16px; top: 16px; width: min(380px, calc(100% - 32px)); display: flex;
+      flex-direction: column; align-items: stretch; gap: 8px; pointer-events: none; }
+    @media (max-width: 760px) { #overlay { top: auto; bottom: 16px; width: auto; right: 16px; } }
+    #card { pointer-events: auto; width: 100%; box-sizing: border-box; padding: 16px 18px 12px;
+      border-radius: 22px; border: 2px solid rgba(255, 179, 71, 0.75);
+      background: linear-gradient(180deg, rgba(38, 20, 10, 0.92), rgba(18, 9, 5, 0.94));
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), 0 0 60px rgba(255, 120, 30, 0.18); text-align: center; }
+    #logo { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    #logo img { width: 44px; height: 44px; border-radius: 11px; }
+    #logo h1 { margin: 0; font-size: 30px; letter-spacing: 3px; font-weight: 900; color: #ffb347;
+      text-shadow: 0 0 18px rgba(255, 140, 40, 0.55); }
+    #tag { margin: 8px 0 10px; font-size: 15px; line-height: 1.4; color: #fff3d6; }
+    #facts { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin: 0 0 14px; padding: 0; list-style: none; }
+    #facts li { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: rgba(255, 179, 71, 0.12);
+      border: 1px solid rgba(255, 179, 71, 0.35); }
+    #enter, #demoStart { pointer-events: auto; font: 700 18px system-ui, sans-serif; padding: 13px 22px; width: 100%;
+      border-radius: 999px; border: 2px solid #ffb347; background: #ff9a2a; color: #2a1408; cursor: pointer;
+      box-shadow: 0 0 24px rgba(255, 154, 42, 0.45); }
+    #enter:disabled { opacity: .6; cursor: default; background: #2a1408; color: #ffd9a0; box-shadow: none; }
+    #hint { margin-top: 10px; font-size: 13px; opacity: .8; line-height: 1.4; }
+    #toggle { pointer-events: auto; margin-top: 8px; background: none; border: 0; color: #ffcf7a; font-size: 12px;
+      text-decoration: underline; cursor: pointer; }
+    body.collapsed #tag, body.collapsed #facts, body.collapsed #hint, body.collapsed #logo { display: none; }
+    body.collapsed #card { width: auto; padding: 10px 14px; }
+    /* screenshot / in-headset / demo footage: keep the picture clean */
+    body.clean #card, body.in-xr #card, body.demo #card { display: none; }
+    @media (max-height: 560px) { #tag, #facts { display: none; } #logo h1 { font-size: 26px; } }
   </style>
 </head>
 <body>
   <div id="overlay">
-    <button id="enter" disabled>Checking for VR…</button>
-    <div id="hint">Desktop test mode: click = pinch, drag the woven fan fast over the grill = fan the coals.</div>
+    <div id="card">
+      <div id="logo"><img src="icon.svg" alt="" /><h1>SUYA NIGHT</h1></div>
+      <p id="tag">Dad’s in hospital. The landlord wants his suya stand. Fan the charcoal, grill, shake the yaji and serve Lagos — with your bare hands.</p>
+      <ul id="facts">
+        <li>✋ Hands only — put controllers down</li>
+        <li>🪑 Seated, all within reach</li>
+        <li>🔥 One night ≈ 5 min</li>
+        <li>🔊 Sound on</li>
+      </ul>
+      <button id="enter" disabled>Checking for VR…</button>
+      <div id="hint">On a Meta Quest: tap <b>Enter VR (hands)</b>. Hold the Meta button to recenter.<br />On a computer: preview with the mouse — click = pinch, drag the woven fan fast over the grill.</div>
+      <button id="toggle" type="button">Hide this card</button>
+    </div>
   </div>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      if (q.has('cam') || q.has('clean')) document.body.classList.add('clean');
+      // desktop preview: tuck the card away as soon as you start playing with the mouse
+      window.addEventListener('pointerdown', function (e) {
+        if (e.target && e.target.tagName === 'CANVAS' && !document.body.classList.contains('collapsed')) {
+          document.body.classList.add('collapsed'); document.getElementById('toggle').textContent = 'Show info';
+        }
+      }, true);
+      document.getElementById('toggle').onclick = function () {
+        var c = document.body.classList.toggle('collapsed');
+        this.textContent = c ? 'Show info' : 'Hide this card';
+      };
+    })();
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -1,5 +1,8 @@
 name: Deploy to GitHub Pages
 
+# Builds and publishes dist/ on every push to main.
+# FREEZE: after submitting (18 Nov 2026), remove the `push:` trigger so nothing
+# changes the judged build. Manual runs (workflow_dispatch) stay available.
 on:
   push:
     branches: [main]
@@ -18,14 +21,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
   deploy:
@@ -36,4 +39,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

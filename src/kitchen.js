@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CY, LAYOUT, MEATS, MEAT_ORDER, SIDES, SIDE_ORDER, COOK, HEAT, pepperLevel } from './config.js';
+import { CY, LAYOUT, MEATS, MEAT_ORDER, TRAY_ORDER, SIDES, SIDE_ORDER, COOK, HEAT, pepperLevel } from './config.js';
 import { makePanel, FONT, fitFont } from './text.js';
 import { Particles } from './fx.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -19,17 +19,21 @@ const _v = new THREE.Vector3();
 const _c = new THREE.Color(), _c2 = new THREE.Color();
 const CHAR = new THREE.Color(0x1a1009);
 const GOLD_TINT = new THREE.Color(0xc98a3a);
+const HEAT_HI = new THREE.Color(0xffe060);
+const _aim = new THREE.Vector3();
+const AIM_RING = new THREE.RingGeometry(0.86, 1, 32); // scaled to each target's size
 
 const lambert = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
 const noRay = (o) => { o.traverse((c) => { c.userData.noRay = true; }); return o; };
 const setRay = (o, on) => o.traverse((c) => { c.userData.noRay = !on; });
 
-// Colour for a given cook level of a meat.
+// Colour for a given cook level of a meat (no allocations: this runs for every stick every frame).
+const COOKED = Object.fromEntries(Object.entries(MEATS).map(([k, m]) => [k, new THREE.Color(m.cooked)]));
 function cookColor(meat, level, out) {
   const m = MEATS[meat];
   const raw = _c.set(m.raw);
   if (level < COOK.GOLDEN) {
-    out.copy(raw).lerp(new THREE.Color(m.cooked), (level / COOK.GOLDEN) * 0.75);
+    out.copy(raw).lerp(COOKED[meat], (level / COOK.GOLDEN) * 0.75);
   } else if (level < COOK.BURNT) {
     const t = (level - COOK.GOLDEN) / (COOK.BURNT - COOK.GOLDEN);
     out.set(m.cooked).lerp(GOLD_TINT, 0.25 * (1 - Math.abs(t - 0.4))).multiplyScalar(1.05 - t * 0.15);
@@ -140,7 +144,7 @@ class Skewer {
       this.chunkRoot.position.y = 0;
     }
   }
-  dispose() { this.mats.forEach((m) => m.dispose()); }
+  dispose() { this.mats.forEach((m) => m.dispose()); this.chunkRoot.children[0]?.geometry.dispose(); }
 }
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
@@ -160,7 +164,7 @@ function sideMesh(side) {
 export class Kitchen {
   constructor(world, hooks) {
     this.world = world;
-    this.hooks = hooks; // { emit(name,data), findServeTarget(pos), takeCash(pos), canInteract() }
+    this.hooks = hooks; // { emit(name,data), findServeTarget(pos), takeCash(pos), cashAt(pos), canInteract() }
     this.root = new THREE.Group();
     world.add(this.root);
     this.heat = HEAT.start;
@@ -171,6 +175,9 @@ export class Kitchen {
     this.available = { meats: MEAT_ORDER.slice(), sides: SIDE_ORDER.slice() };
     this.fanTime = 0;
     this.cookMul = 1;
+    this.fanMul = 1;        // shop: big abebe fan
+    this.heatDecayMul = 1;  // shop: big abebe fan (fire dies slower)
+    this.coalBoost = 1;     // shop: hardwood charcoal glows brighter
 
     this.smoke = new Particles(220, { soft: 0.0 });
     this.embers = new Particles(160, { additive: true, soft: 0.2 });
@@ -198,7 +205,7 @@ export class Kitchen {
       [wallT, G.h * 0.7, G.d, G.w / 2, G.h * 0.35, 0], [wallT, G.h * 0.7, G.d, -G.w / 2, G.h * 0.35, 0],
       [G.w, 0.01, G.d, 0, 0.012, 0],
     ];
-    for (const [w, h, d, x, y, z] of parts) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), metal); m.position.set(x, y, z); g.add(m); }
+    g.add(new THREE.Mesh(mergeGeometries(parts.map(([w, h, d, x, y, z]) => new THREE.BoxGeometry(w, h, d).translate(x, y, z))), metal)); // 1 draw call
     // legs hidden in counter; grate bars
     const barMat = lambert(0x222222);
     const bars = [];
@@ -207,15 +214,34 @@ export class Kitchen {
     }
     g.add(new THREE.Mesh(mergeGeometries(bars), barMat));
     // coals
-    this.coalMat = new THREE.MeshLambertMaterial({ color: 0x1a1210, emissive: 0xff4a10, emissiveIntensity: 0.8 });
+    // Charcoal: dark lumps with glowing faces. Unlit + vertex colours; the material colour follows
+    // the heat each frame, so ember faces flare when you fan while the black faces stay black.
+    this.coalMat = new THREE.MeshBasicMaterial({ vertexColors: true });
     const coalGeos = [];
-    for (let i = 0; i < 46; i++) {
+    const ash = new THREE.Color(0x1a1311), ember = new THREE.Color(), tmp = new THREE.Color();
+    for (let i = 0; i < 52; i++) {
       const cg = new THREE.DodecahedronGeometry(0.018, 0);
       _m4.compose(_pv.set(-G.w / 2 + 0.015 + Math.random() * (HOT_W - 0.01), 0.03 + Math.random() * 0.03, (Math.random() - 0.5) * (G.d - 0.03)),
-        _qq.setFromEuler(_e.set(Math.random() * 3, Math.random() * 3, 0)), _sv.setScalar(0.7 + Math.random() * 0.6));
-      coalGeos.push(cg.applyMatrix4(_m4));
+        _qq.setFromEuler(_e.set(Math.random() * 3, Math.random() * 3, 0)), _sv.set(0.7 + Math.random() * 0.6, 0.55 + Math.random() * 0.35, 0.7 + Math.random() * 0.6));
+      cg.applyMatrix4(_m4);
+      const n = cg.attributes.position.count, col = new Float32Array(n * 3);
+      for (let f = 0; f < n; f += 9) { // one dodecahedron face = 3 triangles = 9 vertices
+        const hot = Math.random() < 0.62;
+        if (hot) ember.setRGB(1, 0.07 + Math.random() * 0.12, 0.004 + Math.random() * 0.012).multiplyScalar(0.7 + Math.random() * 0.4); // linear: deep orange-red
+        tmp.copy(hot ? ember : ash);
+        for (let v = f; v < Math.min(n, f + 9); v++) { col[v * 3] = tmp.r; col[v * 3 + 1] = tmp.g; col[v * 3 + 2] = tmp.b; }
+      }
+      cg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      cg.deleteAttribute('uv'); cg.deleteAttribute('normal');
+      coalGeos.push(cg);
     }
-    g.add(new THREE.Mesh(mergeGeometries(coalGeos), this.coalMat));
+    // a bed of grey ash under the coals
+    const bed = new THREE.PlaneGeometry(HOT_W - 0.01, G.d - 0.02).rotateX(-Math.PI / 2).translate(-G.w / 2 + HOT_W / 2 + 0.002, 0.02, 0);
+    bed.deleteAttribute('uv'); bed.deleteAttribute('normal');
+    const bc = new Float32Array(bed.attributes.position.count * 3).fill(0.018);
+    bed.setAttribute('color', new THREE.BufferAttribute(bc, 3));
+    coalGeos.push(bed.index ? bed.toNonIndexed() : bed);
+    g.add(new THREE.Mesh(mergeGeometries(coalGeos.map((x) => (x.index ? x.toNonIndexed() : x))), this.coalMat));
     this.grillLight = new THREE.PointLight(0xff5a1a, 1.2, 1.4, 1.5);
     this.grillLight.position.set(G.x - G.w / 2 + HOT_W / 2, GRATE_Y + 0.08, G.z);
     this.root.add(this.grillLight);
@@ -229,16 +255,17 @@ export class Kitchen {
 
   _buildTray() {
     const g = new THREE.Group(); g.position.set(T.x, CY, T.z); this.root.add(g);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(T.w, 0.012, T.d), lambert(0xb8bcc0)); base.position.y = 0.006; g.add(base);
-    const rim = lambert(0x9aa0a6);
+    // base, rims and dividers: one vertex-coloured mesh (1 draw call instead of 9)
+    const steel = new THREE.Color(0xb8bcc0), rimC = new THREE.Color(0x9aa0a6);
+    const shell = [colorize(new THREE.BoxGeometry(T.w, 0.012, T.d).translate(0, 0.006, 0), steel)];
     for (const [w, d, x, z] of [[T.w, 0.006, 0, T.d / 2], [T.w, 0.006, 0, -T.d / 2], [0.006, T.d, T.w / 2, 0], [0.006, T.d, -T.w / 2, 0]]) {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), rim); m.position.set(x, 0.012, z); g.add(m);
+      shell.push(colorize(new THREE.BoxGeometry(w, 0.02, d).translate(x, 0.012, z), rimC));
     }
     this.trayComps = [];
-    const cw = T.w / MEAT_ORDER.length;
-    MEAT_ORDER.forEach((meat, i) => {
+    const cw = T.w / TRAY_ORDER.length;
+    TRAY_ORDER.forEach((meat, i) => {
       const cx = -T.w / 2 + cw * (i + 0.5);
-      if (i > 0) { const div = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.016, T.d), rim); div.position.set(-T.w / 2 + cw * i, 0.012, 0); g.add(div); }
+      if (i > 0) shell.push(colorize(new THREE.BoxGeometry(0.003, 0.016, T.d).translate(-T.w / 2 + cw * i, 0.012, 0), rimC));
       // decorative raw skewers: one vertex-coloured mesh per compartment (1 draw call)
       const parts = [];
       const raw = new THREE.Color(MEATS[meat].raw), wood = new THREE.Color(0xd9b98a);
@@ -254,6 +281,7 @@ export class Kitchen {
       g.add(deco);
       this.trayComps.push({ meat, x: T.x + cx, z: T.z, w: cw, deco });
     });
+    g.add(new THREE.Mesh(mergeGeometries(shell.map(stripUV)), new THREE.MeshLambertMaterial({ vertexColors: true })));
     // label strip standing along the BACK edge of the tray, leaning toward the player
     // (the front edge is where the waste bin sits, and hands would cover it)
     this.trayLabel = makePanel(T.w, 0.045, { pxPerM: 2000 });
@@ -262,10 +290,10 @@ export class Kitchen {
     this._drawTrayLabel();
   }
   _drawTrayLabel() {
-    const cw = 1 / MEAT_ORDER.length;
+    const cw = 1 / TRAY_ORDER.length;
     this.trayLabel.redraw((c, w, h) => {
       c.fillStyle = 'rgba(20,10,5,0.85)'; c.fillRect(0, 0, w, h);
-      MEAT_ORDER.forEach((m, i) => {
+      TRAY_ORDER.forEach((m, i) => {
         const on = this.available.meats.includes(m);
         c.fillStyle = on ? '#ffe2b0' : '#5a4a40'; fitFont(c, MEATS[m].name.toUpperCase(), w * cw * 0.92, h * 0.5); c.textAlign = 'center';
         c.fillText(MEATS[m].name.toUpperCase(), w * cw * (i + 0.5), h * 0.66);
@@ -289,12 +317,12 @@ export class Kitchen {
 
   _buildBowls() {
     this.bowls = [];
+    const pts = [];
+    for (let k = 0; k <= 8; k++) { const a = (k / 8) * Math.PI / 2; pts.push(new THREE.Vector2(0.012 + Math.sin(a) * (BW.r - 0.012), 0.04 - Math.cos(a) * 0.04)); }
+    const shells = [];
     SIDE_ORDER.forEach((side, i) => {
       const g = new THREE.Group(); g.position.set(BW.xs[i], CY, BW.z); this.root.add(g);
-      const pts = [];
-      for (let k = 0; k <= 8; k++) { const a = (k / 8) * Math.PI / 2; pts.push(new THREE.Vector2(0.012 + Math.sin(a) * (BW.r - 0.012), 0.04 - Math.cos(a) * 0.04)); }
-      const bowl = new THREE.Mesh(new THREE.LatheGeometry(pts, 16), lambert([0x2a6fb0, 0xd8d0c0, 0xc8402a, 0x3a8a4a][i], { side: THREE.DoubleSide }));
-      g.add(bowl);
+      shells.push(stripUV(colorize(new THREE.LatheGeometry(pts, 16).translate(BW.xs[i], CY, BW.z), new THREE.Color([0x2a6fb0, 0xd8d0c0, 0xc8402a, 0x3a8a4a][i]))));
       // 7 pieces in the bowl, merged into one mesh (1 draw call per bowl)
       const pieces = [];
       for (let k = 0; k < 7; k++) {
@@ -308,33 +336,72 @@ export class Kitchen {
       }
       const fill = new THREE.Mesh(mergeGeometries(pieces), lambert(SIDES[side].color));
       g.add(fill);
-      const label = makePanel(0.085, 0.024, { pxPerM: 2000 });
-      label.position.set(0, 0.012, BW.r + 0.018); label.rotation.x = -Math.PI / 2 + 0.6; g.add(label);
-      this.bowls.push({ side, group: g, label, fill, x: BW.xs[i], z: BW.z });
+      this.bowls.push({ side, group: g, fill, x: BW.xs[i], z: BW.z });
     });
+    this.root.add(new THREE.Mesh(mergeGeometries(shells), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+    // one label strip in front of the row of bowls (1 draw call)
+    const x0 = BW.xs[0] - 0.04, x1 = BW.xs[BW.xs.length - 1] + 0.04;
+    this.bowlLabel = makePanel(x1 - x0, 0.024, { pxPerM: 2000 });
+    this.bowlLabel.position.set((x0 + x1) / 2, CY + 0.012, BW.z + BW.r + 0.014); this.bowlLabel.rotation.x = -Math.PI / 2 + 0.6;
+    this.bowlLabel.userData.noRay = true;
+    this.root.add(this.bowlLabel);
+    this._bowlSpan = [x0, x1];
     this._drawBowlLabels();
   }
   _drawBowlLabels() {
-    for (const b of this.bowls) {
-      const on = this.available.sides.includes(b.side);
-      b.label.redraw((c, w, h) => {
-        c.fillStyle = 'rgba(20,10,5,0.85)'; c.fillRect(0, 0, w, h);
-        c.fillStyle = on ? '#ffe2b0' : '#5a4a40'; fitFont(c, SIDES[b.side].name.toUpperCase(), w * 0.9, h * 0.62); c.textAlign = 'center';
-        c.fillText(SIDES[b.side].name.toUpperCase(), w / 2, h * 0.74);
-      });
-      b.fill.visible = on;
-    }
+    const [x0, x1] = this._bowlSpan;
+    this.bowlLabel.redraw((c, w, h) => {
+      for (const b of this.bowls) {
+        const on = this.available.sides.includes(b.side);
+        const cx = ((b.x - x0) / (x1 - x0)) * w, cw = (0.078 / (x1 - x0)) * w;
+        c.fillStyle = 'rgba(20,10,5,0.85)'; c.fillRect(cx - cw / 2, 0, cw, h);
+        c.fillStyle = on ? '#ffe2b0' : '#5a4a40'; fitFont(c, SIDES[b.side].name.toUpperCase(), cw * 0.9, h * 0.62); c.textAlign = 'center';
+        c.fillText(SIDES[b.side].name.toUpperCase(), cx, h * 0.74);
+        b.fill.visible = on;
+      }
+    });
   }
 
   _buildShaker() {
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.022, 0.085, 12), lambert(0xc0281a)); body.position.y = 0.0425; g.add(body);
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.016, 12), lambert(0xd8d8d8)); cap.position.y = 0.093; g.add(cap);
-    const label = makePanel(0.05, 0.03, { pxPerM: 1600, draw: (c, w, h) => { c.fillStyle = '#f7d36a'; c.fillRect(0, 0, w, h); c.fillStyle = '#7a1408'; c.font = FONT(h * 0.55, 900); c.textAlign = 'center'; c.fillText('YAJI', w / 2, h * 0.72); } });
+    const label = makePanel(0.05, 0.03, { pxPerM: 1600 });
     label.position.set(0, 0.045, 0.0225); g.add(label);
+    this.shakerParts = { body, cap, label };
+    this._drawShakerLabel(false);
     g.position.set(SH.x, CY, SH.z);
     this.root.add(g);
     this.shaker = { kind: 'shaker', group: g, state: 'rest', home: new THREE.Vector3(SH.x, CY, SH.z), lastDir: null, cool: 0 };
+  }
+
+  _drawShakerLabel(papa) {
+    this.shakerParts.label.redraw((c, w, h) => {
+      c.fillStyle = papa ? '#1a1208' : '#f7d36a'; c.fillRect(0, 0, w, h);
+      c.fillStyle = papa ? '#ffd34d' : '#7a1408'; c.textAlign = 'center';
+      if (papa) { c.font = FONT(h * 0.3, 900); c.fillText('PAPA’S', w / 2, h * 0.38); c.font = FONT(h * 0.42, 900); c.fillText('YAJI', w / 2, h * 0.84); }
+      else { c.font = FONT(h * 0.55, 900); c.fillText('YAJI', w / 2, h * 0.72); }
+    });
+  }
+
+  // Shop upgrades that change how the kitchen looks (effects are set by the Game).
+  setUpgrades(u) {
+    const big = !!u.fan;
+    if (this._bigFan !== big) {
+      this._bigFan = big;
+      this.fanBlade.scale.set(big ? 1.18 : 1, 1, big ? 1.18 : 1);
+      this.fanMat.map = big ? (this._bigFanTex ||= makeWovenTexture(true)) : this.fanTex;
+      this.fanMat.needsUpdate = true;
+    }
+    const papa = !!u.yaji;
+    if (this._papaYaji !== papa) {
+      this._papaYaji = papa;
+      this.shakerParts.body.material.color.set(papa ? 0x7a1208 : 0xc0281a);
+      this.shakerParts.cap.material.color.set(papa ? 0xe0a820 : 0xd8d8d8);
+      this.shaker.group.scale.setScalar(papa ? 1.12 : 1);
+      this._drawShakerLabel(papa);
+    }
+    this.coalBoost = u.charcoal ? 1.3 : 1;
   }
 
   _buildBin() {
@@ -353,6 +420,7 @@ export class Kitchen {
     this.fanMat = lambert(0xffffff, { map: tex, emissive: 0xff8a20, emissiveIntensity: 0 });
     const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.005, 20), this.fanMat);
     blade.position.set(0, 0, -0.07); g.add(blade);
+    this.fanBlade = blade; this.fanTex = tex;
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.007, 0.07, 6).rotateX(Math.PI / 2), lambert(0x8a5a2a));
     handle.position.set(0, 0, -0.005); g.add(handle);
     // group origin = the handle (where you pinch); the blade sits beyond it
@@ -398,14 +466,14 @@ export class Kitchen {
       const s = this.slots[i], b = i * 4;
       if (!s) { for (let k = 0; k < 4; k++) this.timerMesh.setMatrixAt(b + k, _m4.makeScale(0, 0, 0)); continue; }
       this._setBar(b, i, 0, 0, W + 0.006, R * 2 + 0.008, 0x14100c, 0);
-      [s.down, s.up].forEach((side, row) => {
-        const lv = s.cook[side], f = Math.min(1, lv / COOK.BURNT);
+      for (let row = 0; row < 2; row++) {
+        const lv = s.cook[row === 0 ? s.down : s.up], f = Math.min(1, lv / COOK.BURNT);
         let col = lv < COOK.GOLDEN ? 0xffb030 : lv < COOK.BURNT - 0.18 ? 0x4cd964 : lv < COOK.BURNT ? (Math.sin(t * 20) > 0 ? 0xff3020 : 0xffd040) : 0x7a1010;
-        if (row === 1) col = new THREE.Color(col).multiplyScalar(0.7).getHex();
+        if (row === 1) col = _c2.set(col).multiplyScalar(0.7).getHex();
         const h = row === 0 ? R : R * 0.7;
         const y = row === 0 ? R * 0.5 + 0.001 : -R * 0.5;
         this._setBar(b + 1 + row, i, -W / 2 + (W * f) / 2, y, W * f, h, col, 0.0005);
-      });
+      }
       this._setBar(b + 3, i, -W / 2 + W * (COOK.GOLDEN / COOK.BURNT), 0, 0.0015, R * 2 + 0.008, 0xffffff, 0.001);
       // one warning ping as the side on the coals nears burning
       const worst = s.cook[s.down];
@@ -414,7 +482,7 @@ export class Kitchen {
     }
     // heat bar along the top of the grill's front wall
     const hb = SLOT_COUNT * 4, HW = G.w - 0.03, low = this.heat < HEAT.low;
-    const hc = low ? (Math.sin(t * 12) > 0 ? 0x3a6aff : 0xff3020) : new THREE.Color(0xff3a10).lerp(_c2.set(0xffe060), this.heat).getHex();
+    const hc = low ? (Math.sin(t * 12) > 0 ? 0x3a6aff : 0xff3020) : _c2.set(0xff3a10).lerp(HEAT_HI, this.heat).getHex();
     _pv.set(G.x, CY + 0.076, G.z + G.d / 2 + 0.008);
     _qq.setFromEuler(_e.set(-0.35, 0, 0));
     this.timerMesh.setMatrixAt(hb, _m4.compose(_pv, _qq, _sv.set(HW + 0.006, 0.013, 1)));
@@ -452,6 +520,7 @@ export class Kitchen {
 
   resetPaper() {
     this.contents = { meats: [], shakes: 0, sides: [] };
+    for (const ch of this.paperContent.children) disposeTree(ch); // chunk geometry + materials came from the (discarded) skewer
     this.paperContent.clear();
     this.pepperLayer.material.opacity = 0;
     this.paperTex.offset.set(Math.random() * 0.5, Math.random() * 0.5);
@@ -461,6 +530,7 @@ export class Kitchen {
     if (!it) return;
     if (it.group.parent) it.group.parent.remove(it.group);
     if (it.dispose) it.dispose();
+    else if (it.kind === 'side' || it.kind === 'package') disposeTree(it.group);
   }
 
   isGrillEmpty() { return this.slots.every((s) => !s); }
@@ -490,9 +560,10 @@ export class Kitchen {
     }
     // pointers that vanished (hand lost tracking) drop what they hold
     for (const [p, h] of this.held) if (!pointers.includes(p)) this._release(p, h);
+    this._updateAim(pointers, canPlay, t);
 
     // 2) heat + coals
-    if (canPlay) this.heat = Math.max(HEAT.floor, this.heat - HEAT.decay * dt);
+    if (canPlay) this.heat = Math.max(HEAT.floor, this.heat - HEAT.decay * this.heatDecayMul * dt);
     if (canPlay && this.heat < HEAT.low && !this.lowWarned) { this.lowWarned = true; audio.play('warn'); this.hooks.emit('heatLow'); }
     if (this.heat > HEAT.low + 0.15) this.lowWarned = false;
     // the fan glows while the fire is low, so you know what to grab
@@ -504,8 +575,8 @@ export class Kitchen {
       if (fn.group.position.distanceTo(fn.home) < 0.002) this._returnFan(true);
     }
     const flicker = 0.9 + Math.sin(t * 9) * 0.05 + Math.sin(t * 23.7) * 0.05;
-    this.coalMat.emissiveIntensity = (0.12 + this.heat * 0.95) * flicker;
-    this.coalMat.emissive.setHSL(0.02 + this.heat * 0.045, 1, 0.42);
+    const ck = (0.28 + this.heat * 0.95) * flicker * this.coalBoost;
+    this.coalMat.color.setRGB(ck, ck * (0.55 + 0.9 * this.heat), ck * (0.5 + 0.8 * this.heat)); // hotter = more yellow
     this.grillLight.intensity = (0.25 + this.heat * 1.6) * flicker;
     if (Math.random() < this.heat * dt * 6) this.embers.emit(G.x - G.w / 2 + 0.015 + Math.random() * (HOT_W - 0.02), GRATE_Y, G.z + (Math.random() - 0.5) * G.d * 0.8, { vy: 0.25, spread: 0.08, life: 0.9, size: 0.006, color: 0xffa040 });
 
@@ -527,10 +598,10 @@ export class Kitchen {
       const worst = s.cook[s.down];
       const sx = s.group.position.x, sz = s.group.position.z;
       if (worst > COOK.BURNT) {
-        if (Math.random() < dt * 14) this.smoke.emit(sx, GRATE_Y + 0.03, sz + (Math.random() - 0.5) * 0.15, { vy: 0.18, spread: 0.05, life: 2.2, size: 0.03, grow: 0.09, color: 0x1a1612, alpha: 0.75 });
+        if (Math.random() < dt * 9) this.smoke.emit(sx, GRATE_Y + 0.03, sz + (Math.random() - 0.5) * 0.15, { vy: 0.2, spread: 0.05, life: 1.5, size: 0.03, grow: 0.05, color: 0x1a1612, alpha: 0.75 });
         if (!s.warnedBurnt) { s.warnedBurnt = true; this.hooks.emit('burnt', { meat: s.meat }); }
       } else if (worst > COOK.BURNT - 0.18) {
-        if (Math.random() < dt * 8) this.smoke.emit(sx, GRATE_Y + 0.03, sz + (Math.random() - 0.5) * 0.15, { vy: 0.16, spread: 0.04, life: 1.8, size: 0.025, grow: 0.07, color: 0x555049, alpha: 0.5 });
+        if (Math.random() < dt * 8) this.smoke.emit(sx, GRATE_Y + 0.03, sz + (Math.random() - 0.5) * 0.15, { vy: 0.16, spread: 0.04, life: 1.5, size: 0.025, grow: 0.045, color: 0x555049, alpha: 0.5 });
       } else if (Math.random() < dt * (1 + this.heat * 3)) {
         this.smoke.emit(sx, GRATE_Y + 0.03, sz + (Math.random() - 0.5) * 0.15, { vy: 0.14, spread: 0.03, life: 1.6, size: 0.02, grow: 0.06, color: 0xb0a8a0, alpha: 0.28 });
       }
@@ -560,7 +631,7 @@ export class Kitchen {
     const v = p.vel, speed = v.length();
     f.phase += dt * (4 + speed * 10);
     g.rotation.set(-0.9 + Math.sin(f.phase) * 0.35 * Math.min(1, speed), 0.4, 0); // blade up, facing the coals
-    this._fanAt(g.position, speed, 1.6, dt); // only the held fan fans: a bare hand or mouse sweep does nothing
+    this._fanAt(g.position, speed, 1.6 * this.fanMul, dt); // only the held fan fans: a bare hand or mouse sweep does nothing
   }
   _fanAt(pl, speed, mult, dt) {
     const inZone = Math.abs(pl.x - G.x) < G.w / 2 + 0.07 && Math.abs(pl.z - G.z) < G.d / 2 + 0.07 && pl.y > CY + 0.02 && pl.y < GRATE_Y + 0.42;
@@ -570,6 +641,72 @@ export class Kitchen {
     this.fanTime += dt;
     if (this.fanTime > 0.5) { this.fanTime = 0; this.hooks.emit('fan'); }
     if (Math.random() < dt * 25) this.embers.emit(G.x - G.w / 2 + 0.015 + Math.random() * (HOT_W - 0.02), GRATE_Y + 0.01, G.z + (Math.random() - 0.5) * G.d * 0.8, { vy: 0.5 + Math.random() * 0.4, spread: 0.2, life: 0.8, size: 0.007, color: 0xffb050 });
+  }
+
+  // ---------------------------------------------------------------- aim feedback
+  // Each free hand shows a soft ring on the thing a pinch would grab right now, so pinch drift
+  // and depth are never a guess. Uses the same rules as _tryGrabAt, without side effects.
+  _updateAim(pointers, canPlay, t) {
+    this.aimRings ||= new Map();
+    const used = new Set();
+    for (const p of pointers) {
+      let ring = this.aimRings.get(p);
+      const free = canPlay && !this.held.get(p) && !(this.paperGrab && this.paperGrab.p === p) && !p.pinching;
+      const at = free ? this._pickAt(p.pos) : null;
+      if (!at) { if (ring) ring.visible = false; continue; }
+      if (!ring) {
+        ring = new THREE.Mesh(AIM_RING, new THREE.MeshBasicMaterial({ color: 0xbff4ff, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide }));
+        ring.rotation.x = -Math.PI / 2; ring.renderOrder = 12; ring.userData.noRay = true;
+        this.root.add(ring); this.aimRings.set(p, ring);
+      }
+      used.add(ring);
+      if (!ring.visible || ring.userData.target !== at.item) { ring.userData.target = at.item; if (p.kind === 'hand') audio.play('tick'); }
+      ring.visible = true;
+      ring.position.copy(at.pos);
+      ring.scale.setScalar(at.r * (1 + Math.sin(t * 8) * 0.06));
+    }
+    for (const r of this.aimRings.values()) if (!used.has(r)) r.visible = false;
+  }
+  // What a pinch at `pos` would take: { item, pos (ring centre), r (ring radius) } or null.
+  _pickAt(pos) {
+    const cash = this.hooks.cashAt?.(pos);
+    if (cash) return { item: cash, pos: _aim.copy(cash.position), r: 0.05 };
+    let best = null, bestD = 0.065;
+    const consider = (item) => {
+      const d = item.kind === 'skewer' ? item.dist(pos) : item.group.position.distanceTo(pos) - 0.03;
+      if (d < bestD) { bestD = d; best = item; }
+    };
+    this.slots.forEach((sk) => sk && consider(sk));
+    this.loose.forEach(consider);
+    if (this.shaker.state !== 'held') {
+      const sp = _v.copy(this.shaker.group.position); sp.y += 0.05;
+      const d = sp.distanceTo(pos) - 0.025;
+      if (d < bestD) { bestD = d; best = this.shaker; }
+    }
+    if (this.fan.state !== 'held') {
+      const fp = this.fan.group.position;
+      const d = Math.min(fp.distanceTo(pos), _v.set(0, 0, -0.07).applyQuaternion(this.fan.group.quaternion).add(fp).distanceTo(pos) - 0.02);
+      if (d < bestD) { bestD = d; best = this.fan; }
+    }
+    if (best) {
+      const gp = best.group.position;
+      if (best.kind === 'skewer') return { item: best, pos: _aim.set(gp.x, gp.y + 0.012, THREE.MathUtils.clamp(pos.z, gp.z - 0.1, gp.z + 0.12)), r: 0.022 };
+      if (best.kind === 'shaker') return { item: best, pos: _aim.set(gp.x, CY + 0.004, gp.z), r: 0.032 };
+      if (best.kind === 'fan') return { item: best, pos: _aim.copy(gp).add(_v.set(0, 0, -0.07).applyQuaternion(this.fan.group.quaternion)).setY(gp.y + 0.006), r: 0.055 };
+      return { item: best, pos: _aim.copy(gp).setY(gp.y + 0.01), r: 0.05 };
+    }
+    if (pos.y < CY + 0.13) {
+      let tc = null, bx = 0.034;
+      for (const c of this.trayComps) { const dx = Math.abs(pos.x - c.x); if (dx < bx && Math.abs(pos.z - c.z) < T.d / 2 + 0.03) { bx = dx; tc = c; } }
+      if (tc && this.available.meats.includes(tc.meat)) return { item: tc, pos: _aim.set(tc.x, CY + 0.034, THREE.MathUtils.clamp(pos.z, tc.z - 0.1, tc.z + 0.1)), r: 0.024 };
+    }
+    if (pos.y < CY + 0.15) {
+      for (const b of this.bowls) if (Math.hypot(pos.x - b.x, pos.z - b.z) < BW.r + 0.02 && this.available.sides.includes(b.side)) return { item: b, pos: _aim.set(b.x, CY + 0.042, b.z), r: 0.036 };
+    }
+    if (this.contents.meats.length && Math.abs(pos.x - B.x) < PAPER.w / 2 + 0.02 && Math.abs(pos.z - B.z) < PAPER.d / 2 + 0.02 && pos.y < PAPER.y + 0.12) {
+      return { item: this.paper, pos: _aim.set(B.x, PAPER.y + 0.004, B.z), r: 0.09 };
+    }
+    return null;
   }
 
   // ---------------------------------------------------------------- grabbing
@@ -748,9 +885,9 @@ export class Kitchen {
     if (!overPaper) { sh.pour = 0; }
     let shake = false;
     if (speed > 0.22) {
-      const dir = v.clone().divideScalar(speed);
-      if (!sh.lastDir) sh.lastDir = dir;
-      else if (dir.dot(sh.lastDir) < -0.2 && sh.cool <= 0) { sh.lastDir = dir; sh.cool = 0.07; shake = overPaper; }
+      const dir = _pv.copy(v).divideScalar(speed);
+      if (!sh.lastDir) sh.lastDir = dir.clone();
+      else if (dir.dot(sh.lastDir) < -0.2 && sh.cool <= 0) { sh.lastDir.copy(dir); sh.cool = 0.07; shake = overPaper; }
     }
     // Holding the tilted shaker still over the paper also pours, slowly (one shake every 0.6 s).
     // Shaking is faster; this makes pepper possible for anyone whose shakes don't register.
@@ -802,7 +939,7 @@ export class Kitchen {
     this.paperGrab = null;
     const contents = { ...this.contents, meats: this.contents.meats.slice(), sides: this.contents.sides.slice(), pepper: pepperLevel(this.contents.shakes) };
     const g = new THREE.Group();
-    const bundle = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.045, 0.075), [0, 1, 2, 3, 4, 5].map(() => lambert(0xffffff, { map: this.paperTex })));
+    const bundle = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.045, 0.075), lambert(0xffffff, { map: this.paperTex }));
     bundle.rotation.y = 0.2;
     g.add(bundle);
     const twist = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.04, 6), lambert(0xe8e2d0, { map: this.paperTex }));
@@ -844,6 +981,14 @@ function colorize(geo, color) {
   return g;
 }
 function stripUV(g) { g.deleteAttribute('uv'); return g; }
+// Free GPU memory of a throwaway object (geometries + materials; shared textures are left alone).
+function disposeTree(o) {
+  o.traverse((m) => {
+    if (!m.isMesh) return;
+    m.geometry?.dispose();
+    for (const mat of Array.isArray(m.material) ? m.material : [m.material]) mat?.dispose();
+  });
+}
 
 function makeNewspaperTexture() {
   const c = document.createElement('canvas'); c.width = 512; c.height = 512;
@@ -859,13 +1004,13 @@ function makeNewspaperTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.7, 0.7);
   return t;
 }
-function makeWovenTexture() {
+function makeWovenTexture(dyed = false) {
   const c = document.createElement('canvas'); c.width = 128; c.height = 128;
   const x = c.getContext('2d');
   x.fillStyle = '#c99a52'; x.fillRect(0, 0, 128, 128);
   for (let i = 0; i < 16; i++) for (let j = 0; j < 16; j++) {
     const odd = (i + j) % 2;
-    x.fillStyle = odd ? '#e0b86c' : '#a87436';
+    x.fillStyle = dyed && (i + j) % 6 < 2 ? (odd ? '#c0302a' : '#2a7a4a') : odd ? '#e0b86c' : '#a87436';
     x.fillRect(i * 8 + (odd ? 1 : 0), j * 8 + (odd ? 0 : 1), odd ? 6 : 8, odd ? 8 : 6);
   }
   x.strokeStyle = '#7a2a1a'; x.lineWidth = 6; x.beginPath(); x.arc(64, 64, 52, 0, Math.PI * 2); x.stroke();

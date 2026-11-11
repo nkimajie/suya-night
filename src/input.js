@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+import { LAYOUT } from './config.js';
 
 // Turns hand tracking, controllers and the desktop mouse into one Pointer API.
 // All positions/velocities are in STALL-LOCAL space so gameplay never touches world space.
@@ -58,7 +59,7 @@ const _w = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 
 const PINCH_ON = 0.022, PINCH_OFF = 0.038, AIM_OPEN = 0.04;
-const MOUSE_FAR_Z = -0.72; // ~ LAYOUT.handZ
+const MOUSE_FAR_Z = LAYOUT.handZ - 0.03; // just past where customers hold out their hands
 
 export class Input {
   constructor(renderer, scene, camera, dom, stall) {
@@ -72,7 +73,8 @@ export class Input {
     this.mode = 'desktop';
     this.handsSeen = false;
 
-    const handFactory = new XRHandModelFactory();
+    // Hand meshes ship with the game (public/hands, MIT) so judges never depend on a CDN.
+    const handFactory = new XRHandModelFactory().setPath('./hands/');
     for (let i = 0; i < 2; i++) {
       const hand = renderer.xr.getHand(i);
       hand.add(handFactory.createHandModel(hand, 'mesh'));

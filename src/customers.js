@@ -2,13 +2,24 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CY, LAYOUT, MEATS, SIDES, PEPPER_LABEL, naira } from './config.js';
 import { FLOOR_Y } from './env.js';
-import { makePanel, FONT, roundRect, wrapText, countLines } from './text.js';
+import { makePanel, FONT, roundRect, wrapText, countLines, fitFont } from './text.js';
 import { audio } from './audio.js';
 
 const lambert = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
 const _v = new THREE.Vector3();
 const _q = new THREE.Quaternion(), _q0 = new THREE.Quaternion();
 const DOWN = new THREE.Vector3(0, -1, 0);
+const _hv = new THREE.Vector3(), _tgt = new THREE.Vector3(), CASH_OFF = new THREE.Vector3(0, 0.03, 0.02);
+
+// Free everything a throwaway object owns on the GPU: geometries, materials and canvas textures.
+export function disposeDeep(o) {
+  if (!o) return;
+  o.traverse((m) => {
+    if (!m.isMesh) return;
+    m.geometry?.dispose();
+    for (const mat of Array.isArray(m.material) ? m.material : [m.material]) { if (!mat) continue; mat.map?.dispose(); mat.dispose(); }
+  });
+}
 
 // ---------------------------------------------------------------- model
 export function buildPerson(look) {
@@ -64,8 +75,14 @@ export function buildPerson(look) {
   const hc = lambert(look.hatColor || 0x111111);
   switch (look.hat) {
     case 'gele': {
-      const gele = new THREE.Mesh(new THREE.TorusKnotGeometry(0.07, 0.035, 40, 6, 2, 3), hc); gele.position.y = 0.1; gele.scale.set(1.3, 0.8, 1.1); head.add(gele);
-      const wrap = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), hc); wrap.position.y = 0.02; head.add(wrap);
+      // gele: wrapped bands rising into a fanned, pleated crown
+      const wrap = new THREE.Mesh(new THREE.SphereGeometry(0.108, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), hc); wrap.position.y = 0.02; head.add(wrap);
+      [[0.1, 0.06, 0, 0.0], [0.105, 0.11, 0.22, 0.05], [0.095, 0.155, -0.18, 0.1]].forEach(([r, y, tilt, rx]) => {
+        const band = new THREE.Mesh(new THREE.TorusGeometry(r, 0.026, 6, 18), hc);
+        band.position.y = y; band.rotation.set(Math.PI / 2 + rx, tilt, 0); band.scale.set(1.15, 1, 0.8); head.add(band);
+      });
+      const fanG = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.05, 0.11, 10, 1, false, -0.6, Math.PI + 1.2), hc);
+      fanG.position.set(0, 0.2, -0.04); fanG.rotation.x = -0.35; fanG.scale.set(1, 1, 0.45); head.add(fanG);
       break;
     }
     case 'cap': {
@@ -169,6 +186,7 @@ export class Customer {
     this.patienceMax = opts.patience * (char.patience || 1);
     this.patience = this.patienceMax;
     this.infinite = !!opts.infinite;
+    this.tag = opts.tag || 0; // loyalty tier: 1 friend, 2 family
     this.state = 'arriving';
     this.t = 0;
     this.stateT = 0;
@@ -202,7 +220,10 @@ export class Customer {
   }
 
   get handWorld() { return (this.serveArm === this.person.parts.armR ? this.person.parts.handR : this.person.parts.handL).getWorldPosition(new THREE.Vector3()); }
-  handLocal() { return this.world.worldToLocal(this.handWorld); }
+  handLocal(out = new THREE.Vector3()) {
+    (this.serveArm === this.person.parts.armR ? this.person.parts.handR : this.person.parts.handL).getWorldPosition(out);
+    return this.world.worldToLocal(out);
+  }
 
   say(text, kind = 'talk') {
     this.bubbleText = text;
@@ -230,7 +251,10 @@ export class Customer {
     this.card.redraw((c, w, h) => {
       roundRect(c, 3, 3, w - 6, h - 6, 16); c.fillStyle = 'rgba(250,244,228,0.97)'; c.fill();
       c.lineWidth = 5; c.strokeStyle = '#3a2412'; c.stroke();
-      c.fillStyle = '#7a3a10'; c.font = FONT(h * 0.085, 800); c.textAlign = 'left'; c.fillText(this.char.name.toUpperCase(), w * 0.05, h * 0.12);
+      c.fillStyle = '#7a3a10'; c.textAlign = 'left';
+      const nm = this.char.name.toUpperCase() + (this.tag ? (this.tag === 2 ? ' ♥♥' : ' ♥') : '');
+      fitFont(c, nm, w * 0.62, h * 0.085, 800); c.fillText(nm, w * 0.05, h * 0.12);
+      c.font = FONT(h * 0.085, 800);
       c.textAlign = 'right'; c.fillStyle = '#1a6a2a'; c.fillText(naira(this.price), w * 0.95, h * 0.12);
       let y = h * 0.26;
       c.textAlign = 'left';
@@ -244,8 +268,9 @@ export class Customer {
       c.font = FONT(h * 0.09, 800);
       c.fillStyle = o.pepper === 'none' ? '#555' : o.pepper === 'plenty' ? '#c41a0a' : '#c86a10';
       c.fillText(PEPPER_LABEL[o.pepper] + (o.pepper === 'plenty' ? '  ★★' : o.pepper === 'normal' ? '  ★' : ''), w * 0.05, y); y += h * 0.115;
-      c.fillStyle = '#2a4a1a'; c.font = FONT(h * 0.085, 700);
-      c.fillText(o.sides.length ? '+ ' + o.sides.map((s) => SIDES[s].name).join(', ') : 'No sides', w * 0.05, y);
+      c.fillStyle = '#2a4a1a';
+      const sidesLine = o.sides.length ? '+ ' + o.sides.map((s) => SIDES[s].name).join(', ') : 'No sides';
+      fitFont(c, sidesLine, w * 0.9, h * 0.085, 700); c.fillText(sidesLine, w * 0.05, y);
       // patience bar
       const bx = w * 0.05, by = h * 0.86, bw = w * 0.9, bh = h * 0.07;
       c.fillStyle = '#d8cdb8'; c.fillRect(bx, by, bw, bh);
@@ -290,7 +315,7 @@ export class Customer {
         break;
       case 'paying':
         this.cashT += dt;
-        if (this.cash) this.cash.position.copy(this.handLocal()).add(new THREE.Vector3(0, 0.03, 0.02));
+        if (this.cash) this.handLocal(this.cash.position).add(CASH_OFF);
         if (this.cashT > 9 && this.cash) this.onCashTimeout();
         break;
       case 'leaving': {
@@ -309,7 +334,7 @@ export class Customer {
     const arm = this.serveArm;
     const W = this.char.look.build || 1;
     const sx = this.x + (arm === P.armR ? 0.2 : -0.2) * W;
-    const tgt = new THREE.Vector3(this.x * 0.45 - sx, CY + 0.17 - (FLOOR_Y + this.person.shoulderY), LAYOUT.handZ - LAYOUT.customerZ).normalize();
+    const tgt = _tgt.set(this.x * 0.45 - sx, CY + 0.17 - (FLOOR_Y + this.person.shoulderY), LAYOUT.handZ - LAYOUT.customerZ).normalize();
     _q.setFromUnitVectors(DOWN, tgt);
 
     // walking cycle / idle
@@ -338,7 +363,7 @@ export class Customer {
     if (this.bubble.visible) { this.bubbleT += dt; if (this.bubbleT > 7 && this.state !== 'paying') this.bubble.visible = false; }
 
     // card
-    this.card.position.set(this.x + (this.serveArm === P.armR ? -0.1 : 0.1), CY + 0.25, LAYOUT.customerZ + 0.26);
+    this.card.position.set(this.x + (this.serveArm === P.armR ? -0.15 : 0.15), CY + 0.25, LAYOUT.customerZ + 0.26);
     this.card.lookAt(_v);
   }
 
@@ -352,16 +377,30 @@ export class Customer {
     this.card.visible = false;
   }
 
-  showCash(amount) {
+  // Payment held out in the customer's hand: a naira note, or (pay by transfer) a phone showing the
+  // credit alert. A "pending" alert is the Lagos classic: check it and they pay cash instead.
+  showCash(amount, { transfer = false, pending = false } = {}) {
     this.cashAmount = amount;
+    this.cashPending = transfer && pending;
+    this.cashTransfer = transfer;
     if (amount <= 0) return;
-    const note = makePanel(0.09, 0.045, { pxPerM: 1800, transparent: false, draw: (c, w, h) => {
-      const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#5b3a8a'); g.addColorStop(1, '#2f6a5a');
-      c.fillStyle = g; c.fillRect(0, 0, w, h); c.strokeStyle = '#e8e0c0'; c.lineWidth = 6; c.strokeRect(5, 5, w - 10, h - 10);
-      c.fillStyle = '#fff6d0'; c.font = FONT(h * 0.42, 900); c.textAlign = 'center'; c.fillText(naira(amount), w / 2, h * 0.65);
-    } });
+    if (this.cash) { this.world.remove(this.cash); disposeDeep(this.cash); this.cash = null; }
+    const note = transfer
+      ? makePanel(0.07, 0.1, { pxPerM: 1800, transparent: false, draw: (c, w, h) => {
+        c.fillStyle = '#111'; c.fillRect(0, 0, w, h);
+        c.fillStyle = pending ? '#3a2a08' : '#0c3a1e'; c.fillRect(w * 0.08, h * 0.06, w * 0.84, h * 0.86);
+        c.textAlign = 'center';
+        c.fillStyle = pending ? '#ffb347' : '#6af08a'; fitFont(c, pending ? 'PENDING…' : 'CREDIT ALERT', w * 0.78, h * 0.1, 900); c.fillText(pending ? 'PENDING…' : 'CREDIT ALERT', w / 2, h * 0.28);
+        c.fillStyle = '#fff'; fitFont(c, naira(amount), w * 0.78, h * 0.16, 900); c.fillText(naira(amount), w / 2, h * 0.52);
+        c.fillStyle = '#aaa'; fitFont(c, 'BANK ALERT', w * 0.78, h * 0.08, 700); c.fillText('BANK ALERT', w / 2, h * 0.74);
+      } })
+      : makePanel(0.09, 0.045, { pxPerM: 1800, transparent: false, draw: (c, w, h) => {
+        const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#5b3a8a'); g.addColorStop(1, '#2f6a5a');
+        c.fillStyle = g; c.fillRect(0, 0, w, h); c.strokeStyle = '#e8e0c0'; c.lineWidth = 6; c.strokeRect(5, 5, w - 10, h - 10);
+        c.fillStyle = '#fff6d0'; c.font = FONT(h * 0.42, 900); c.textAlign = 'center'; c.fillText(naira(amount), w / 2, h * 0.65);
+      } });
     note.material.side = THREE.DoubleSide;
-    const grp = new THREE.Group(); grp.add(note); note.rotation.x = -0.9;
+    const grp = new THREE.Group(); grp.add(note); note.rotation.x = transfer ? -0.5 : -0.9;
     const glow = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.06, 24), new THREE.MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
     glow.rotation.x = -Math.PI / 2; grp.add(glow); grp.userData.glow = glow;
     grp.traverse((o) => { o.userData.noRay = true; });
@@ -374,6 +413,7 @@ export class Customer {
     if (!this.cash) { this.leave(); return 0; }
     const amt = this.cashAmount;
     this.world.remove(this.cash);
+    disposeDeep(this.cash);
     this.cash = null;
     this.leave();
     return auto ? amt : amt;
@@ -381,10 +421,13 @@ export class Customer {
 
   leave() { this.state = 'leaving'; this.stateT = 0; this.card.visible = false; }
 
+  // Leaving customers must free their canvases and meshes: ~1 MB each, 40+ customers a session.
   dispose() {
     this.world.remove(this.group);
     this.world.remove(this.bubble);
     this.world.remove(this.card);
     if (this.cash) this.world.remove(this.cash);
+    for (const o of [this.group, this.bubble, this.card, this.cash]) disposeDeep(o);
+    this.cash = null;
   }
 }

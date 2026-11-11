@@ -184,11 +184,16 @@ class AudioEngine {
       case 'angry': tone(220, 0.25, 'sawtooth', 0.08, 0, 0.7); tone(180, 0.3, 'sawtooth', 0.06, 0.15, 0.7); break;
       case 'bell': tone(988, 0.4, 'sine', 0.12); tone(1480, 0.5, 'sine', 0.05); break;
       case 'click': tone(900, 0.04, 'square', 0.06); break;
+      case 'tick': tone(1500, 0.025, 'sine', 0.025); break; // hand is now over something grabbable
       case 'combo': [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.12, 'square', 0.05, i * 0.05)); break;
       case 'warn': tone(1046, 0.08, 'square', 0.07); tone(1046, 0.08, 'square', 0.07, 0.14); break;
       case 'whoosh': noise(0.3, 600, 'bandpass', 0.2, 0, 0.6); break;
       case 'powerOff': tone(110, 0.6, 'sawtooth', 0.12, 0, 0.3); noise(0.2, 300, 'lowpass', 0.4); break;
       case 'powerOn': tone(60, 0.5, 'sawtooth', 0.1, 0, 2); tone(880, 0.1, 'sine', 0.08, 0.4); break;
+      case 'buy': tone(1568, 0.06, 'square', 0.06); tone(2093, 0.3, 'square', 0.06, 0.06); noise(0.15, 5000, 'highpass', 0.12, 0.02); tone(523, 0.15, 'triangle', 0.1, 0.1); break;
+      case 'star': tone(1318, 0.18, 'triangle', 0.12); tone(1976, 0.3, 'sine', 0.06, 0.05); break;
+      case 'gen': noise(0.25, 200, 'lowpass', 0.5); noise(0.25, 200, 'lowpass', 0.5, 0.3); tone(55, 1.0, 'sawtooth', 0.08, 0.6, 1.4); break;
+      case 'loyal': [659, 880, 1046, 1318].forEach((f, i) => tone(f, 0.18, 'sine', 0.1, i * 0.08)); break;
       case 'win': [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.3, 'triangle', 0.14, i * 0.12)); break;
       case 'lose': [392, 349, 311, 262].forEach((f, i) => tone(f, 0.35, 'triangle', 0.12, i * 0.16)); break;
     }
@@ -214,6 +219,7 @@ class AudioEngine {
       synth.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[*_]/g, ''));
       const voices = synth.getVoices();
+      if (!voices.length) this.murmur(pitch); // some headsets ship no voices: never leave a customer silent
       const v = voices.find((x) => /en[-_]NG/i.test(x.lang)) || voices.find((x) => /en[-_]GB/i.test(x.lang)) || voices.find((x) => /^en/i.test(x.lang));
       if (v) u.voice = v;
       u.pitch = pitch; u.rate = rate; u.volume = 0.9;

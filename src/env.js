@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { CY, LAYOUT } from './config.js';
-import { makePanel, FONT, roundRect } from './text.js';
+import { makePanel, FONT, roundRect, fitFont } from './text.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const FLOOR_Y = -1.2; // seated eye height ≈ 1.2 m above the street
+export const GEN_AT = { x: -1.14, z: -1.02 }; // bought generator on its crate, clear of the counter
 
 const lambert = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
 
@@ -116,6 +117,7 @@ export function buildEnvironment(world) {
 
   // Front sign facing the street (customers' side) and a painted sign facing the player
   const front = makePanel(1.2, 0.3, { pxPerM: 500, transparent: false, draw: (c, w, h) => drawStallSign(c, w, h) });
+  env.signs = [front];
   front.position.set(0, CY - 0.2, C.z0 - 0.06); front.rotation.y = Math.PI; front.userData.noRay = true; world.add(front);
 
   const posts = [];
@@ -126,12 +128,15 @@ export function buildEnvironment(world) {
   const roof = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.03, 1.5), lambert(0x7d8790, { map: makeCorrugatedTexture() }));
   roof.position.set(0, FLOOR_Y + 2.22, -0.3); roof.rotation.x = -0.08; roof.userData.noRay = true; world.add(roof);
   const valance = makePanel(1.3, 0.24, { pxPerM: 500, transparent: false, draw: (c, w, h) => drawStallSign(c, w, h) });
+  env.signs.push(valance);
   valance.position.set(0, FLOOR_Y + 2.05, C.z0 - 0.08); valance.rotation.y = Math.PI; valance.userData.noRay = true; world.add(valance);
   // Inner valance facing the player (readable)
-  const inner = makePanel(1.1, 0.16, { pxPerM: 500, transparent: false, draw: (c, w, h) => {
-    c.fillStyle = '#20120a'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffcf7a'; c.font = FONT(h * 0.42, 800); c.textAlign = 'center';
-    c.fillText('MALLAM SANI SUYA • SINCE 1996', w / 2, h * 0.6);
-  } });
+  const drawInner = (son) => (c, w, h) => {
+    c.fillStyle = son ? '#0f4a2a' : '#20120a'; c.fillRect(0, 0, w, h); c.fillStyle = son ? '#ffd34d' : '#ffcf7a'; c.textAlign = 'center';
+    fitFont(c, son ? 'MALLAM SANI & SON SUYA • SINCE 1996' : 'MALLAM SANI SUYA • SINCE 1996', w * 0.94, h * 0.42, 800);
+    c.fillText(son ? 'MALLAM SANI & SON SUYA • SINCE 1996' : 'MALLAM SANI SUYA • SINCE 1996', w / 2, h * 0.6);
+  };
+  const inner = makePanel(1.1, 0.16, { pxPerM: 500, transparent: false, draw: drawInner(false) });
   inner.position.set(0, FLOOR_Y + 2.0, C.z0 - 0.04); inner.userData.noRay = true; world.add(inner);
 
   // Hanging bulb
@@ -152,18 +157,95 @@ export function buildEnvironment(world) {
   const hemi = new THREE.HemisphereLight(0x5a6aa8, 0x2a1a10, 0.9); world.add(hemi);
   env.lights.hemi = hemi;
 
+  // ---- Shop upgrades & story props (all emissive / unlit: no extra lights) ----
+  // Canopy lights: a sagging string of coloured bulbs across the front of the stall (1 draw call).
+  const bulbGeos = [], bulbCols = [0xffd34d, 0xff5a3a, 0x5ae07a, 0x5aa0ff, 0xff8ad8];
+  for (let i = 0; i <= 18; i++) {
+    const t = i / 18, bx = -0.64 + t * 1.28, by = 0.7 - 0.06 * (1 - (2 * t - 1) ** 2);
+    const bg = new THREE.SphereGeometry(0.016, 6, 4).toNonIndexed().translate(bx, by, C.z0 - 0.07);
+    bg.deleteAttribute('uv'); bg.deleteAttribute('normal');
+    const col = new THREE.Color(bulbCols[i % bulbCols.length]);
+    const arr = new Float32Array(bg.attributes.position.count * 3);
+    for (let k = 0; k < arr.length; k += 3) { arr[k] = col.r; arr[k + 1] = col.g; arr[k + 2] = col.b; }
+    bg.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+    bulbGeos.push(bg);
+  }
+  const lightString = new THREE.Mesh(mergeGeometries(bulbGeos), new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
+  lightString.userData.noRay = true; lightString.visible = false; world.add(lightString);
+  const lightGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.3), new THREE.MeshBasicMaterial({ map: glowTex, color: 0xffb060, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+  lightGlow.scale.set(1, 1, 1); lightGlow.position.set(0, 0.67, C.z0 - 0.08); lightGlow.userData.noRay = true; lightGlow.visible = false; world.add(lightGlow);
+  env.lightString = lightString;
+
+  // Tip tin on the counter (right of the cutting board)
+  const tinGeos = [];
+  const tinC = (geo, c) => { geo = geo.toNonIndexed(); geo.deleteAttribute('uv'); const col = new THREE.Color(c); const a = new Float32Array(geo.attributes.position.count * 3); for (let k = 0; k < a.length; k += 3) { a[k] = col.r; a[k + 1] = col.g; a[k + 2] = col.b; } geo.setAttribute('color', new THREE.BufferAttribute(a, 3)); return geo; };
+  tinGeos.push(tinC(new THREE.CylinderGeometry(0.034, 0.034, 0.06, 14, 1, true).translate(0, 0.03, 0), 0xb8c0c8));
+  tinGeos.push(tinC(new THREE.CylinderGeometry(0.031, 0.031, 0.004, 14).translate(0, 0.05, 0), 0x6a4ab0));
+  for (let k = 0; k < 4; k++) tinGeos.push(tinC(new THREE.BoxGeometry(0.03, 0.002, 0.014).rotateY(k * 0.8).translate((k - 1.5) * 0.008, 0.053 + k * 0.002, (k % 2) * 0.006), k % 2 ? 0x2f6a5a : 0x8a5aba));
+  tinGeos.push(tinC(new THREE.CylinderGeometry(0.035, 0.035, 0.008, 14).translate(0, 0.004, 0), 0xc0282a));
+  const tin = new THREE.Mesh(mergeGeometries(tinGeos), lambert(0xffffff, { vertexColors: true, side: THREE.DoubleSide }));
+  tin.position.set(LAYOUT.tin.x, CY, LAYOUT.tin.z); tin.userData.noRay = true; tin.visible = false; world.add(tin);
+  env.tin = tin;
+
+  // Gbam Burger (fictional chain) "Suya Burger" shop sign across the road (Night 7+). Teal and purple, no real brand's colours.
+  const rival = makePanel(2.6, 0.75, { pxPerM: 160, transparent: false, draw: (c, w, h) => {
+    c.fillStyle = '#0f7f78'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#5a1f96'; c.fillRect(0, h * 0.78, w, h * 0.22);
+    c.fillStyle = '#e8fff9'; c.textAlign = 'center'; fitFont(c, 'GBAM BURGER!', w * 0.9, h * 0.5, 900); c.fillText('GBAM BURGER!', w / 2, h * 0.52);
+    c.fillStyle = '#f3e6ff'; fitFont(c, 'NOW SELLING SUYA BURGER', w * 0.8, h * 0.17, 900); c.fillText('NOW SELLING SUYA BURGER', w / 2, h * 0.95);
+  } });
+  rival.material.toneMapped = false;
+  rival.position.set(0, FLOOR_Y + 4.6, -9.8); rival.userData.noRay = true; rival.visible = false; world.add(rival);
+  env.rival = rival;
+
+  // The bought generator: on a crate front-left so it shows above the counter (1 merged mesh)
+  const ng = [];
+  const box = (w, h, d, x, y, z, c) => ng.push(tinC(new THREE.BoxGeometry(w, h, d).translate(x, y, z), c));
+  box(0.62, 0.5, 0.46, 0, 0.25, 0, 0x4a2e1a);                 // crate
+  box(0.5, 0.32, 0.34, 0, 0.66, 0, 0xe0b020);                  // body
+  box(0.52, 0.03, 0.36, 0, 0.5, 0, 0x1a1a1a);                  // base frame
+  for (const [fx, fz] of [[-0.25, -0.17], [0.25, -0.17], [-0.25, 0.17], [0.25, 0.17]]) box(0.025, 0.4, 0.025, fx, 0.7, fz, 0x1a1a1a);
+  box(0.52, 0.025, 0.025, 0, 0.9, -0.17, 0x1a1a1a); box(0.52, 0.025, 0.025, 0, 0.9, 0.17, 0x1a1a1a); // carry bars
+  box(0.2, 0.12, 0.01, 0.08, 0.64, 0.175, 0x2a2a30);           // control panel
+  box(0.03, 0.03, 0.012, 0.03, 0.65, 0.182, 0xe03020); box(0.03, 0.03, 0.012, 0.11, 0.65, 0.182, 0x30a040);
+  ng.push(tinC(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 10).translate(-0.12, 0.835, 0), 0xc02020)); // fuel cap
+  ng.push(tinC(new THREE.CylinderGeometry(0.018, 0.018, 0.16, 8).rotateZ(Math.PI / 2).translate(0.32, 0.6, -0.08), 0x777777)); // exhaust
+  const newGen = new THREE.Mesh(mergeGeometries(ng), lambert(0xffffff, { vertexColors: true }));
+  newGen.position.set(GEN_AT.x, FLOOR_Y, GEN_AT.z); newGen.rotation.y = 0.55; newGen.userData.noRay = true; newGen.visible = false; world.add(newGen);
+  const genHome = gen.position.clone();
+  env.genExhaust = new THREE.Vector3();
+  env.genRunning = false;
+  env.setUpgrades = (u) => {
+    lightString.visible = lightGlow.visible = !!u.lights;
+    env.brighter = u.lights ? 1 : 0;
+    tin.visible = !!u.tin;
+    // Bought generator stands front-left where you can see it; before that, the old one hides behind you.
+    newGen.visible = !!u.generator; gen.visible = !u.generator;
+    env.genExhaust.set(GEN_AT.x + Math.cos(0.55) * 0.4, FLOOR_Y + 0.62, GEN_AT.z - Math.sin(0.55) * 0.4);
+    const son = !!u.sign;
+    if (env._son !== son) {
+      env._son = son;
+      for (const p of env.signs) p.redraw((c, w, h) => drawStallSign(c, w, h, son));
+      inner.redraw(drawInner(son));
+    }
+    env.setPower(env.power);
+  };
+  env.setRival = (on) => { rival.visible = !!on; };
+  env.setGenRunning = (on) => { env.genRunning = on; if (!on) newGen.position.y = FLOOR_Y; };
+
   env.power = true;
   env.setPower = (on) => {
     env.power = on;
     bulb.visible = on; bulbGlow.visible = on;
     lantern.visible = !on;
     bulbLight.color.set(on ? 0xffc27a : 0xff9a40);
-    bulbLight.intensity = on ? 2.2 : 0.9;
+    bulbLight.intensity = on ? 2.2 + (env.brighter || 0) * 0.5 : 0.9;
+    lightString.material.color.setScalar(on ? 1 : 0.15);
     bulbLight.position.copy(on ? bulb.position : lantern.position.clone().add(new THREE.Vector3(0, 0.2, 0)));
     shopLight.intensity = on ? 3 : 0;
     strip.material.color.set(on ? 0xc04cff : 0x222222);
     kopen.material.color.set(on ? 0x3a1d50 : 0x0c0a10);
-    hemi.intensity = on ? 0.9 : 0.45;
+    hemi.intensity = on ? 0.9 + (env.brighter || 0) * 0.15 : 0.45;
   };
   env.update = (t) => {
     if (!on()) {
@@ -172,17 +254,20 @@ export function buildEnvironment(world) {
     } else {
       strip.material.color.setHSL((t * 0.05) % 1, 0.8, 0.55);
     }
+    if (env.genRunning) newGen.position.y = FLOOR_Y + Math.abs(Math.sin(t * 40)) * 0.004; // gen shakes while running
   };
   const on = () => env.power;
   return env;
 }
 
-function drawStallSign(c, w, h) {
+function drawStallSign(c, w, h, son = false) {
   const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#0f6b3a'); g.addColorStop(1, '#09482a');
   c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.strokeStyle = '#f5f1e6'; c.lineWidth = h * 0.05; c.strokeRect(h * 0.06, h * 0.06, w - h * 0.12, h - h * 0.12);
-  c.fillStyle = '#ffd34d'; c.font = FONT(h * 0.42, 900); c.textAlign = 'center';
-  c.fillText('MALLAM SANI SUYA', w / 2, h * 0.52);
+  c.strokeStyle = son ? '#ffd34d' : '#f5f1e6'; c.lineWidth = h * 0.05; c.strokeRect(h * 0.06, h * 0.06, w - h * 0.12, h - h * 0.12);
+  c.fillStyle = '#ffd34d'; c.textAlign = 'center';
+  const name = son ? 'MALLAM SANI & SON' : 'MALLAM SANI SUYA';
+  fitFont(c, name, w * 0.86, h * 0.42, 900);
+  c.fillText(name, w / 2, h * 0.52);
   c.fillStyle = '#fff'; c.font = FONT(h * 0.2, 700); c.fillText('ALLEN AVENUE • HOT YAJI • SINCE 1996', w / 2, h * 0.82);
 }
 
