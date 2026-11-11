@@ -320,8 +320,16 @@ try {
     game.showMenu(); await frames(2);
     const judgeMap = game.board.buttons.some((b) => b.label === 'Map & shop');
     game.save = keep;
+    // one-hand mode (Settings tile): the tutorial skips the fan step and the fire never runs low
+    game.showSettings(); await frames(2);
+    game.board.tiles.find((t) => t.id === 'onehand').onPress(); await frames(2);
+    game.save.tutorialDone = false; game.startNight(1); await frames(5);
+    const step = game.tutorial && game.tutorial.step;
+    game.kitchen.heat = 0.1; await frames(30);
+    const oneHand = game.save.oneHand && step === 1 && game.kitchen.heat >= 0.7;
+    game.save.oneHand = false; game.applyUpgrades(); game.clearNight();
     game.showMenu();
-    return { far, seen, m0, m1, menuClean, frozen, judgeMap };
+    return { far, seen, m0, m1, menuClean, frozen, judgeMap, oneHand };
   });
   console.log(JSON.stringify(qa));
 
@@ -343,6 +351,7 @@ try {
     ['Pause -> Menu leaves nothing frozen or highlighted', qa.menuClean],
     ['customers wait while the game is paused', qa.frozen],
     ['"Open all nights" shows the Map on a fresh save', qa.judgeMap],
+    ['one-hand mode: no fanning step, fire stays hot', qa.oneHand],
     ['no GPU memory growth over 24 customers', qa.m1.textures - qa.m0.textures <= 2 && qa.m1.geometries - qa.m0.geometries <= 4],
     ['bare sweep does not fan', result.fanCheck.bare],
     ['held fan heats the coals', result.fanCheck.fan],

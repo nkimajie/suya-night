@@ -127,6 +127,7 @@ export class Game {
     this.priceMul = u.yaji ? 1.1 : 1;
     this.tipMul = u.tin ? 1.15 : 1;
     this.patienceMul = u.lights ? 1.2 : 1;
+    this.kitchen.autoHeat = !!this.save.oneHand;
   }
 
   hideHud() { this.hud.panel.visible = false; this.strip.visible = false; this.notebook.hide(); this.highlight.at(null); this.pauseBtn.group.visible = false; this.pop.visible = false; }
@@ -166,6 +167,8 @@ export class Game {
     const tiles = [
       { id: 'mode', label: `${MODES[this.mode].label} mode`, sub: this.mode === 'story' ? 'relaxed timers' : 'the real Lagos pace', onPress: () => { this.mode = this.mode === 'story' ? 'rush' : 'story'; this.persist(); this.applyUpgrades(); this.showSettings(); }, style: { color: '#d8c8f0' } },
       { id: 'voice', label: audio.voice ? 'Voices ON' : 'Voices OFF', sub: 'speech bubbles always show', onPress: () => { audio.voice = !audio.voice; this.persist(); this.showSettings(); }, style: { color: '#c8e0f0' } },
+      { id: 'onehand', label: s.oneHand ? 'One hand ✓' : 'One-hand play', sub: s.oneHand ? 'fire stays hot by itself' : 'no fanning needed', onPress: () => { s.oneHand = !s.oneHand; this.persist(); this.applyUpgrades(); this.showSettings(); }, style: { color: s.oneHand ? '#9be08a' : '#e8d8b0' } },
+      { id: 'counter', label: `Counter: ${['lower', 'normal', 'higher'][s.counter + 1]}`, sub: 'tap to change height', onPress: () => { s.counter = s.counter === 0 ? 1 : s.counter === 1 ? -1 : 0; this.persist(); this.onRecenter?.(); this.showSettings(); }, style: { color: '#e8d8b0' } },
       { id: 'judge', label: s.allOpen ? 'All nights open ✓' : 'Open all nights', sub: s.allOpen ? 'judge pass on' : 'judge pass: + ₦30,000', onPress: () => { if (!s.allOpen) { s.allOpen = true; s.savings += 30000; this.persist(); } this.showSettings(); }, style: { color: s.allOpen ? '#9be08a' : '#ffd34d' } },
       confirmReset
         ? { id: 'reset', label: 'Tap to erase', sub: 'all progress', onPress: () => { this.save = clearSave(); this.mode = 'story'; this.persist(); this.applyUpgrades(); this.showMenu(); }, style: { color: '#e0443a', text: '#fff' } }
@@ -173,8 +176,8 @@ export class Game {
     ];
     this.board.show({
       title: 'Settings',
-      text: 'Progress saves in this browser. Short on time? Open all nights, then pick one on the Map.',
-      grid: { cols: 2, tiles },
+      text: 'Saves in this browser. Short on time? Open all nights, then pick one on the Map.',
+      grid: { cols: 3, tiles }, // 3 × 2: taller tiles, easier to poke
       buttons: [{ label: 'Back', onPress: () => this.showMenu(), style: { color: '#8a7a6a', text: '#fff' } }],
     });
   }
@@ -363,7 +366,9 @@ export class Game {
     this.applyUpgrades();
     this.env.setRival(!!L.rival);
     this.kitchen.setAvailable(L.meats, L.sides);
-    if (this.tutorial) this.kitchen.heat = 0.32; // the fire is dying: the very first thing you do is fan it
+    if (this.tutorial) { // the fire is dying: the very first thing you do is fan it (one-hand mode skips that step)
+      if (this.save.oneHand) this.tutorial.done[0] = true; else this.kitchen.heat = 0.32;
+    }
     this.setActor(null);
     this.board.hide();
     this.hud.panel.visible = true;

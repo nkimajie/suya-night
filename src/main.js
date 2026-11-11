@@ -74,6 +74,7 @@ function recenterNow() {
   xrCam.matrixWorld.decompose(_p, _q, _f);
   _f.set(0, 0, -1).applyQuaternion(_q);
   world.position.copy(_p);
+  world.position.y += (game.save.counter || 0) * 0.05; // Settings → Counter higher / lower
   world.rotation.set(0, Math.atan2(-_f.x, -_f.z), 0);
   world.updateMatrixWorld(true);
 }

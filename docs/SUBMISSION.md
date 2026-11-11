@@ -75,7 +75,8 @@ the kilishi masters of Kano.
 6. **Short on time?** Main menu → **Settings → Open all nights**, then **Map & shop**: jump to Night 2
    (blackout about 1.5 min in), Night 5 (driver rush), Night 7 (the rival) or Night 8 (finale), and try the shop
    (₦30,000 added).
-7. Settings → Story mode (relaxed, default) / Rush mode (hard). Voices are off by default; speech bubbles always show.
+7. Settings → Story mode (relaxed, default) / Rush mode (hard); One-hand play (no fanning needed);
+   Counter height (lower / normal / higher). Voices are off by default; speech bubbles always show.
 8. Note: a pinch with your palm facing you opens the Quest system menu; the game pauses and resumes.
 
 ## Hand interactions (optional field)
@@ -91,8 +92,8 @@ centimetres of drift as fingers close never costs you a grab. Menus are fingerti
 
 ## Special awards this entry fits
 Boldest Original Concept · Best First Five Minutes · Best Reason to Come Back ·
-Best Accessibility Forward Experience (Story mode, seated, text for every line, relaxed timers,
-a judge pass to any night).
+Best Accessibility Forward Experience (seated, one-hand play, adjustable counter height, text for
+every line, relaxed Story mode timers, doneness not shown by colour alone, a judge pass to any night).
 
 ## Gallery images (3:2, 1500×1000, first = thumbnail)
 `docs/gallery/1-hand-it-over.png` (thumbnail), then 2 → 7 in order. Regenerate with `npm run shots`.

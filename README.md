@@ -140,6 +140,10 @@ Devpost gallery versions (3:2, captioned) are in [docs/gallery/](docs/gallery/).
   seconds. Pause on headset removal or system menu; resume where you left off.
 - **Comfortable and readable.** No locomotion, no snap turns, a fixed horizon, large canvas text,
   voices off by default (speech bubbles always show), Story mode with relaxed timers.
+- **Accessible.** Settings has **One-hand play** (the fire tends itself, so every step needs only one
+  hand) and **Counter height** (lower / normal / higher, for different chairs, wheelchairs and arm
+  reach). Doneness is shown by bar length, a white "golden" mark, flashing and a warning sound, not by
+  colour alone.
 - **Original content.** Every character, place, brand and sign is invented. No real companies or people.
 
 ## Run it

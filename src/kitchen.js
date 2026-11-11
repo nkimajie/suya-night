@@ -566,6 +566,7 @@ export class Kitchen {
 
     // 2) heat + coals
     if (canPlay) this.heat = Math.max(HEAT.floor, this.heat - HEAT.decay * this.heatDecayMul * dt);
+    if (this.autoHeat) this.heat = Math.max(this.heat, 0.72); // one-hand mode: the fire tends itself
     if (canPlay && this.heat < HEAT.low && !this.lowWarned) { this.lowWarned = true; audio.play('warn'); this.hooks.emit('heatLow'); }
     if (this.heat > HEAT.low + 0.15) this.lowWarned = false;
     // the fan glows while the fire is low, so you know what to grab

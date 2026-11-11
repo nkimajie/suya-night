@@ -9,6 +9,8 @@ export const START_SAVINGS = 5000; // Papa's tin: enough for one small upgrade a
 export function defaultSave() {
   return {
     v: 2, mode: 'story', voice: false, tutorialDone: false, allOpen: false,
+    oneHand: false,    // accessibility: the fire stays hot, so every step needs only one hand
+    counter: 0,        // accessibility: stall height, -1 lower / 0 normal / +1 higher (5 cm steps)
     act1Done: false, act2Done: false, shopSeen: false,
     levels: {},        // n -> { stars 0..3, best money }
     savings: START_SAVINGS, earned: 0,
@@ -52,10 +54,11 @@ function sanitize(raw) {
   const s = defaultSave();
   if (!raw || typeof raw !== 'object') return s;
   if (raw.mode === 'story' || raw.mode === 'rush') s.mode = raw.mode;
-  for (const k of ['voice', 'tutorialDone', 'act1Done', 'act2Done', 'shopSeen', 'allOpen']) if (typeof raw[k] === 'boolean') s[k] = raw[k];
+  for (const k of ['voice', 'tutorialDone', 'act1Done', 'act2Done', 'shopSeen', 'allOpen', 'oneHand']) if (typeof raw[k] === 'boolean') s[k] = raw[k];
   const num = (v, lo, hi, d) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d);
   s.savings = Math.round(num(raw.savings, 0, 1e9, START_SAVINGS));
   s.earned = Math.round(num(raw.earned, 0, 1e10, 0));
+  s.counter = Math.round(num(raw.counter, -1, 1, 0));
   if (raw.levels && typeof raw.levels === 'object') {
     for (let n = 1; n <= LEVEL_COUNT; n++) {
       const l = raw.levels[n];
