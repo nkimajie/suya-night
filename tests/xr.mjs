@@ -96,6 +96,11 @@ try {
     out.pokedTile = game.shopSel;
     await poke(game.board.buttons[0]);
     out.pokedBuy = !!game.save.upgrades.tin;
+    // frame-rate safety net: stepping quality down mid-session must not break rendering
+    window.SUYA.quality.set(2);
+    await frames(10);
+    out.lowQuality = window.SUYA.quality.level === 2 && renderer.xr.getFoveation() === 1;
+    window.SUYA.quality.set(0);
     return out;
   });
   console.log(JSON.stringify(r));
@@ -109,6 +114,7 @@ try {
   await page.click('#enter');
   await page.waitForFunction(() => window.SUYA.renderer.xr.isPresenting, { timeout: 15000 });
   const demoOk = await page.waitForFunction(() => window.SUYA.game.money >= 2500 && !window.SUYA.game.tutorial, { timeout: 150000, polling: 500 }).then(() => true).catch(() => false);
+  r.demoShake = await page.waitForFunction(() => window.SUYA.game.snaps >= 1, { timeout: 12000, polling: 200 }).then(() => true).catch(() => false);
   r.demoMoney = await page.evaluate(() => window.SUYA.game.money);
   r.demoRating = await page.evaluate(() => window.SUYA.game.rating());
   await page.evaluate(() => window.SUYA_DEMO?.stop());
@@ -123,7 +129,9 @@ try {
     ['waving the fan heats the coals', r.heatAfterFan > 0.3],
     ['fingertip poke selects a shop tile', r.pokedTile === 'tin'],
     ['fingertip poke on Buy buys it', r.pokedBuy],
+    ['frame-rate safety net steps quality down in VR', r.lowQuality],
     ['demo autopilot serves the tutorial order (5★)', r.demoOk && r.demoRating >= 5],
+    ['Mama Nkechi\'s handshake: slap + snap with tracked hands', r.demoShake],
     ['no console errors', errors.length === 0],
   ];
   for (const [name, ok] of checks) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`); if (!ok) failed = true; }

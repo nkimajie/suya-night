@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CY, LAYOUT, MODES, MEATS, PEPPER_LABEL, naira } from './config.js';
 import { Kitchen, doneness } from './kitchen.js';
-import { Customer, buildPerson, disposeDeep } from './customers.js';
+import { Customer, buildPerson, disposeDeep, animateFace } from './customers.js';
 import { CHARACTERS, genericCharacter, driverCharacter, COMPLAINTS, pick, INTRO, NIGHT_INTRO, NIGHT_PASS, NIGHT_FAIL, ENDING_GOOD, ENDING_BAD_BLOGGER, SHOP_INTRO, ACT2_INTRO, ACT2_END } from './story.js';
 import { Board, Hud, Notebook, Highlight, Button } from './ui.js';
 import { makePanel, FONT, roundRect, fitFont } from './text.js';
@@ -30,7 +30,7 @@ const TUTORIAL = [
   { ev: 'cash', short: 'Pinch the naira', text: 'Pinch the naira note in her hand to take your money.', at: (k, g) => g.customerHandAnchor(), r: 0.07 },
 ];
 
-const _hw = new THREE.Vector3();
+const _hw = new THREE.Vector3(), _hs = new THREE.Vector3();
 
 // Papa's Special: one meat pays +₦500 a stick, picked from today's date (no streaks, nothing to lose).
 function dailySpecial(meats) {
@@ -65,14 +65,19 @@ export class Game {
     this.hud = new Hud(world);
     this.notebook = new Notebook(world);
     this.highlight = new Highlight(world);
+    this.shakeHint = new Highlight(world); // Lagos handshake prompt (separate from the tutorial arrow)
+    this.shakesDone = 0;
     this.customers = [];
     this.actor = null;
     this.reveal = null;
 
     // toast for feedback
     this.toast = makePanel(0.4, 0.055, { pxPerM: 1500 });
-    this.toast.position.set(0.05, -0.2, -0.5); this.toast.rotation.x = -0.35;
+    // Just above the grill's back edge (in view while cooking), below the spot where customers hold out
+    // their hand, so messages never cover a hand-over, the order card or the speech bubble.
+    this.toast.position.set(0.0, CY + 0.075, -0.6); this.toast.rotation.x = -0.52;
     this.toast.userData.noRay = true; this.toast.visible = false; this.toast.renderOrder = 8;
+    this.toast.material.depthTest = false; // always readable, even with a hand or skewer in front
     world.add(this.toast);
     this.toastT = 0;
 
@@ -182,6 +187,7 @@ export class Game {
     if (i >= steps.length) { this.setActor(null); onDone(); return; }
     const s = steps[i];
     this.setActor(s.actor || null);
+    this.actorTalk = s.actor && s.speaker ? Math.min(5, 0.8 + s.text.length * 0.045) : 0;
     this.board.show({
       title: s.title || '', speaker: s.speaker || '', text: s.text,
       buttons: [
@@ -199,7 +205,7 @@ export class Game {
     const p = buildPerson(CHARACTERS[id].look);
     p.group.position.set(0.12, FLOOR_Y, LAYOUT.customerZ - 0.05);
     this.world.add(p.group);
-    this.actor = { id, group: p.group, parts: p.parts };
+    this.actor = { id, group: p.group, parts: p.parts, face: {} };
   }
 
   showNightIntro(n) {
@@ -437,13 +443,14 @@ export class Game {
     const patience = this.night.patience * MODES[this.mode].patience * this.patienceMul * TIER_PERK[tier].patience;
     const c = new Customer(this.world, char, ord, slot, { patience, infinite: !!entry.tutorial && !!this.tutorial, tag: tier });
     c.who = who;
+    c.tutorialCustomer = !!entry.tutorial && !!this.tutorial;
     const special = this.special ? ord.meats.filter((m) => m === this.special).length * 500 : 0;
     c.price = Math.round((c.price * this.priceMul) / 50) * 50 + special;
     c.transfer = this.n >= 4 && !entry.tutorial && Math.random() < 0.35;
     c.transferPending = c.transfer && Math.random() < 0.22;
     c.onTimeout = () => this.customerTimeout(c);
     c.onJudged = () => this.customerJudged(c);
-    c.onCashTimeout = () => this.collect(c);
+    c.onCashTimeout = () => this.collect(c, true);
     this.customers.push(c);
     return true;
   }
@@ -496,9 +503,51 @@ export class Game {
     return false;
   }
 
-  collect(c) {
+  // Lagos handshake: pull your hand back, slap palms with the customer's open hand, then pinch
+  // (the snap) as the hands part. Purely for fun: no score, no penalty, it times out by itself.
+  updateShakes(pointers) {
+    let hint = null, hintText = '';
+    for (const c of this.customers) {
+      if (c.state !== 'shake' || this.paused) continue;
+      const hand = c.handLocal(_hs);
+      if (!c.slapped) {
+        for (const p of pointers) {
+          if (this.kitchen.held.get(p)) continue;
+          const d = Math.min(p.pos.distanceTo(hand), p.tip ? p.tip.distanceTo(hand) : 9);
+          if (d > 0.14) c.shakeArmed.add(p); // the hand must come in from a little way off: a real slap
+          else if (d < 0.08 && c.shakeArmed.has(p)) {
+            c.slapped = true; c.slapAt = c.stateT;
+            audio.play('slap'); c.hop();
+            for (let i = 0; i < 10; i++) this.coins.emit(hand.x, hand.y, hand.z, { vy: 0.25, spread: 0.5, life: 0.4, size: 0.008, color: 0xfff2c0, gravity: 0.5 });
+            break;
+          }
+        }
+        if (!c.slapped && this.shakesDone < 2 && c.stateT > 1.1) { hint = hand; hintText = 'SLAP HANDS!'; } // after the money pop
+      } else if (!c.shook) {
+        const snap = pointers.find((p) => p.pinchStarted && p.pos.distanceTo(hand) < 0.3);
+        if (snap || c.stateT - c.slapAt > 1.8) {
+          c.shook = true; c.stateT = 0; this.shakesDone++;
+          if (snap) {
+            this.snaps = (this.snaps || 0) + 1;
+            audio.play('snap'); c.hop();
+            c.say(pick(['Hehe! Correct guy!', 'Na so! You sabi am!', 'Eheh! Original Lagos handshake!']), 'happy');
+            this.showPop(hand.clone(), 'RESPECT!', 'Lagos handshake', '#ff8ad8');
+          } else c.say('Hehe! Next time, snap am!', 'happy');
+        } else if (this.shakesDone < 2) { hint = hand; hintText = 'NOW PINCH = SNAP!'; }
+      }
+    }
+    this.shakeHint.at(hint, 0.06, hintText);
+  }
+
+  collect(c, auto = false) {
     const at = c.cash ? c.cash.position.clone() : c.handLocal();
     const amt = c.collectCash();
+    if (c.wantShake && !auto && this.state === 'playing') {
+      c.offerShake(c.tutorialCustomer
+        ? 'Ehen! You be Mallam Sani pikin true true. Oya, shake me!'
+        : pick(['My guy! Shake me jare!', 'Oya, give me Lagos handshake!', 'Family! Bring hand!']));
+      c.shakeArmed = new Set();
+    }
     this.money += amt;
     if (amt > 0) {
       audio.play('cash');
@@ -578,6 +627,8 @@ export class Game {
       this.persist();
       if (after > before) tierUp = after;
     }
+    // A Lagos handshake for Mama Nkechi after the tutorial order, regulars who just moved up, and family.
+    c.wantShake = r.stars >= 4 && (c.tutorialCustomer || tierUp > 0 || (c.tag || 0) >= 2);
     if (r.stars >= 4) {
       c.mood = 'happy'; audio.play('happy');
       if (tierUp) {
@@ -585,6 +636,7 @@ export class Game {
         audio.play('loyal');
         this.showToast(`♥ ${shortName(c.char.name)} is now ${TIER_NAME[tierUp]}: more patience, bigger tips`, '#ff8ad8', 3.5);
       } else c.say(r.stars === 5 ? pick(c.char.happy || ['Correct!']) : `Not bad o. ${pick(COMPLAINTS[r.main] || ['Small thing missing.'])}`, 'happy');
+      if (r.stars === 5) c.cheer();
     } else {
       c.mood = 'angry'; audio.play('angry');
       const line = pick(COMPLAINTS[r.main] || ['E no correct.']);
@@ -775,6 +827,7 @@ export class Game {
     if (!this.paused) this.kitchen.update(dt, pointers, this.t);
 
     for (const c of this.customers) c.update(this.paused ? 0 : dt, this.head, this.paused);
+    this.updateShakes(pointers);
     for (const c of this.customers.filter((x) => x.state === 'gone')) c.dispose();
     this.customers = this.customers.filter((x) => x.state !== 'gone');
 
@@ -782,6 +835,8 @@ export class Game {
     for (const c of this.customers) if (c.cash) c.cash.userData.glow.scale.setScalar(1 + Math.sin(this.t * 6) * 0.15);
 
     if (this.actor) {
+      this.actorTalk = Math.max(0, (this.actorTalk || 0) - dt);
+      animateFace(this.actor.parts, this.actor.face, dt, this.actorTalk > 0);
       this.actor.parts.head.rotation.y = Math.sin(this.t * 0.8) * 0.1;
       this.actor.group.position.y = FLOOR_Y + Math.sin(this.t * 1.5) * 0.004;
     }
@@ -804,6 +859,7 @@ export class Game {
       if (s && (s.ev === 'flip' || s.ev === 'serve' || s.ev === 'cash')) this.highlight.at(s.at(this.kitchen, this), s.r, s.short);
     }
     this.highlight.update(this.t, this.world.localToWorld(_hw.copy(this.head)));
+    this.shakeHint.update(this.t, _hw);
     this.env.update(this.t);
 
     if (this.pop.visible) {

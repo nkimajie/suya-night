@@ -29,6 +29,8 @@ const FRAG = /* glsl */ `
   }`;
 
 export const particleScale = { value: 900 };
+// Frame-rate safety net: below 1, a share of new particles is skipped (less smoke overdraw near the eyes).
+export const fxQuality = { value: 1 };
 
 export class Particles {
   constructor(max, { additive = false, soft = 0.0 } = {}) {
@@ -63,6 +65,7 @@ export class Particles {
   }
 
   emit(x, y, z, { vx = 0, vy = 0, vz = 0, spread = 0, life = 1, size = 0.02, grow = 0, color = 0xffffff, alpha = 1, gravity = 0 } = {}) {
+    if (fxQuality.value < 1 && Math.random() > fxQuality.value) return;
     const i = this.cursor;
     this.cursor = (this.cursor + 1) % this.max;
     this.pos[i * 3] = x; this.pos[i * 3 + 1] = y; this.pos[i * 3 + 2] = z;

@@ -5,6 +5,8 @@ import { FLOOR_Y } from './env.js';
 import { makePanel, FONT, roundRect, wrapText, countLines, fitFont } from './text.js';
 import { audio } from './audio.js';
 
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
 const lambert = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
 const _v = new THREE.Vector3();
 const _q = new THREE.Quaternion(), _q0 = new THREE.Quaternion();
@@ -51,7 +53,15 @@ export function buildPerson(look) {
     const arm = new THREE.Group(); arm.position.set(s * 0.2 * W, shoulderY, 0);
     const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.075, armLen * 0.55, 0.08), look.robe ? top : top); sleeve.position.y = -armLen * 0.27; arm.add(sleeve);
     const fore = new THREE.Mesh(new THREE.BoxGeometry(0.06, armLen * 0.45, 0.065), look.longSleeve ? top : skin); fore.position.y = -armLen * 0.77; arm.add(fore);
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.04, 10, 8), skin); hand.position.y = -armLen; hand.scale.set(1, 0.7, 1.2); arm.add(hand);
+    // open hand: palm (inner face = local +Z, which faces up when the arm reaches out), four slightly
+    // cupped fingers and a thumb toward the body. All merged into the arm mesh: no extra draw calls.
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.07, 0.024), skin); hand.position.y = -armLen + 0.005; arm.add(hand);
+    for (let f = 0; f < 4; f++) {
+      const fg = new THREE.Mesh(new THREE.BoxGeometry(0.0145, 0.05 - Math.abs(f - 1.5) * 0.006, 0.019), skin);
+      fg.position.set((f - 1.5) * 0.0168, -armLen - 0.052, 0.003); fg.rotation.x = 0.22; arm.add(fg);
+    }
+    const th = new THREE.Mesh(new THREE.BoxGeometry(0.017, 0.042, 0.02), skin);
+    th.position.set(-s * 0.038, -armLen - 0.012, 0.006); th.rotation.z = s * 0.55; arm.add(th);
     g.add(arm);
     parts[s < 0 ? 'armL' : 'armR'] = arm;
     parts[s < 0 ? 'handL' : 'handR'] = hand;
@@ -68,6 +78,9 @@ export function buildPerson(look) {
     parts[s < 0 ? 'browL' : 'browR'] = brow;
   }
   const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.008, 0.01), lambert(0x5a1a14)); mouth.position.set(0, -0.045, 0.094); head.add(mouth);
+  // eyelids for blinking: one skin-coloured mesh over both eyes, hidden except mid-blink (no draw call then)
+  const lidGeo = mergeGeometries([-1, 1].map((sx) => new THREE.SphereGeometry(0.019, 8, 6).scale(1, 1, 0.8).translate(sx * 0.035, 0.015, 0.093)));
+  const lids = new THREE.Mesh(lidGeo, skin); lids.visible = false; head.add(lids); parts.lids = lids;
   parts.mouth = mouth;
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 5), skin); nose.position.set(0, -0.008, 0.1); nose.scale.set(1.2, 0.8, 0.8); head.add(nose);
 
@@ -131,11 +144,22 @@ export function buildPerson(look) {
   return { group: g, parts, shoulderY, armLen };
 }
 
+// Faces come alive: blink every few seconds, flap the mouth while the line is being said.
+// st = small per-person state object; moodY/moodX = the mouth shape for the current mood.
+export function animateFace(P, st, dt, talking, moodY = 1, moodX = 1) {
+  st.t = (st.t || 0) + dt;
+  st.blink = (st.blink ?? 1 + Math.random() * 3) - dt;
+  if (P.lids) P.lids.visible = st.blink < 0;
+  if (st.blink < -0.13) st.blink = 2.2 + Math.random() * 3.5;
+  P.mouth.scale.y = talking ? Math.max(moodY * 0.8, 0.6 + Math.abs(Math.sin(st.t * 13)) * 2.2) : moodY;
+  P.mouth.scale.x = moodX;
+}
+
 // Draw-call saver: merge each rigid body part (body, legs, arms, head) into one
 // vertex-coloured mesh. A person goes from ~25 draw calls to ~9. The mouth and brows stay
 // separate (they animate with mood) and the hands become empty markers for the IK target.
 function bakePerson(g, parts) {
-  const keep = new Set([parts.mouth, parts.browL, parts.browR]);
+  const keep = new Set([parts.mouth, parts.browL, parts.browR, parts.lids]);
   for (const k of ['handL', 'handR']) {
     const h = parts[k], m = new THREE.Object3D();
     m.position.copy(h.position); h.parent.add(m); parts[k] = m;
@@ -229,6 +253,7 @@ export class Customer {
     this.bubbleText = text;
     this.bubble.visible = true;
     this.bubbleT = 0;
+    this.talkDur = Math.min(4, 0.6 + text.length * 0.045);
     const name = this.char.name;
     const border = kind === 'happy' ? '#3fbf5f' : kind === 'angry' ? '#e0443a' : '#ffb347';
     this.bubble.redraw((c, w, h) => {
@@ -313,6 +338,12 @@ export class Customer {
       case 'judging':
         if (this.stateT > 1.1) this.onJudged();
         break;
+      case 'shake': // Lagos handshake offered: palm slap, then a snap as the hands pull apart
+        if (this.stateT > (this.shook ? 1.6 : 4.5)) {
+          if (!this.shook) this.say(pick(['Ah, next time o!', 'You dey busy, I understand.']), 'talk');
+          this.leave();
+        }
+        break;
       case 'paying':
         this.cashT += dt;
         if (this.cash) this.handLocal(this.cash.position).add(CASH_OFF);
@@ -329,7 +360,7 @@ export class Customer {
     }
 
     // serving arm reaches toward a point over the counter, nearer the player's centre
-    const reach = this.state === 'waiting' || this.state === 'paying' ? 1 : this.state === 'judging' ? 0.5 : 0;
+    const reach = this.state === 'waiting' || this.state === 'paying' || (this.state === 'shake' && !this.shook) ? 1 : this.state === 'judging' ? 0.5 : this.state === 'shake' ? 0.6 : 0;
     this.reach = THREE.MathUtils.lerp(this.reach || 0, reach, Math.min(1, dt * 4));
     const arm = this.serveArm;
     const W = this.char.look.build || 1;
@@ -343,18 +374,25 @@ export class Customer {
     const other = arm === P.armR ? P.armL : P.armR;
     const sgn = (a) => (a === P.armR ? 1 : -1);
     other.rotation.set(sgn(other) * swing * 0.6 + (other === P.armL && this.char.look.phone && !walking ? -1.1 : 0), 0, 0);
+    if (this.cheerT !== undefined && this.cheerT < 1.4) { // 5★: the free arm goes up and waves
+      this.cheerT += dt;
+      const up = Math.min(1, this.cheerT * 5) * Math.min(1, (1.4 - this.cheerT) * 4);
+      other.rotation.set(0, 0, sgn(other) * up * (2.5 + Math.sin(this.cheerT * 18) * 0.25));
+    }
     if (this.reach < 0.02) arm.rotation.set(sgn(arm) * swing * 0.6, 0, 0);
     else arm.quaternion.slerpQuaternions(_q0, _q, this.reach);
     this.person.group.position.y = walking ? Math.abs(Math.sin(this.t * 9)) * 0.02 : Math.sin(this.t * 1.5) * 0.004;
 
     // face
     const mood = this.mood || 'neutral';
-    P.mouth.scale.y = mood === 'happy' ? 2.2 : mood === 'angry' ? 0.8 : 1;
-    P.mouth.scale.x = mood === 'happy' ? 1.3 : mood === 'angry' ? 0.8 : 1;
+    this.face = this.face || {};
+    animateFace(P, this.face, dt, this.bubble.visible && this.bubbleT < (this.talkDur || 0),
+      mood === 'happy' ? 2.2 : mood === 'angry' ? 0.8 : 1, mood === 'happy' ? 1.3 : mood === 'angry' ? 0.8 : 1);
     P.browL.rotation.z = mood === 'angry' ? -0.4 : 0; P.browR.rotation.z = mood === 'angry' ? 0.4 : 0;
     P.head.rotation.y = mood === 'angry' && this.stateT < 1 ? Math.sin(this.t * 25) * 0.15 : Math.sin(this.t * 0.7) * 0.08;
     if (this.state === 'judging') P.head.rotation.x = 0.35; else P.head.rotation.x *= 0.9;
     if (mood === 'happy' && this.stateT < 0.6) this.person.group.position.y += Math.abs(Math.sin(this.stateT * 10)) * 0.04;
+    if (this.hopT !== undefined && this.hopT < 0.7) { this.hopT += dt; this.person.group.position.y += Math.abs(Math.sin(this.hopT * 9)) * 0.05; }
 
     // bubble floats in front of the customer's chest (comfortable eye level), facing the player
     this.bubble.position.set(g.position.x, 0.03, Math.max(g.position.z, LAYOUT.customerZ) + 0.24);
@@ -420,6 +458,16 @@ export class Customer {
   }
 
   leave() { this.state = 'leaving'; this.stateT = 0; this.card.visible = false; }
+
+  // A regular (or Mama Nkechi after the tutorial) holds out a hand for a Lagos handshake. Optional:
+  // it never blocks play and simply times out if your hands are busy.
+  offerShake(line) {
+    this.state = 'shake'; this.stateT = 0; this.shook = false; this.slapped = false;
+    this.mood = 'happy';
+    this.say(line, 'happy');
+  }
+  hop() { this.hopT = 0; }
+  cheer() { this.cheerT = 0; this.hop(); }
 
   // Leaving customers must free their canvases and meshes: ~1 MB each, 40+ customers a session.
   dispose() {

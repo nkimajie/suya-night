@@ -34,8 +34,8 @@ Tonight he is in hospital, and the landlord gives Aminu three nights to prove th
 Customers walk up and say their order. You pinch a woven fan and wave it over the coals to keep them
 hot, lay skewers on the grill and turn them before they burn, slide the meat onto newspaper, shake
 yaji until the pepper is right ("no pepper for madam o!"), add onions or masa, lift the paper to wrap
-it, hand it over, and pinch the naira out of the customer's hand. A soft ring always shows what your
-hand will grab, so real hand tracking feels precise.
+it, hand it over, and pinch the naira out of the customer's hand. Regulars greet you with a Lagos
+handshake: slap palms, then snap. A soft ring shows what each hand will grab, so tracking feels precise.
 
 Act 1 is three nights: a tutorial with Mama Nkechi, a Friday rush with a NEPA blackout cooked by
 lantern, and the landlord's inspection. Act 2, "The Spot Grows", adds five nights of building the
@@ -84,7 +84,8 @@ wave drives the heat, the glowing coals and the embers. Pinch to pick up skewers
 shaker; turning a skewer is pinch, lift, place. Shaking is detected from direction reversals of the
 pinching hand, and the number of shakes sets none / normal / plenty pepper. Lifting the newspaper
 wraps the order, and serving is a real hand-to-hand exchange: you let go near the customer's open
-hand, then pinch the naira from it. A soft ring shows what each hand would grab, the pinch point
+hand, then pinch the naira from it. Mama Nkechi and regulars who become family offer a Lagos
+handshake: pull back, slap their open palm, then pinch as the hands part for the snap. A soft ring shows what each hand would grab, the pinch point
 glows gold while pinching, and pinches use the point where your fingers were last open, so the few
 centimetres of drift as fingers close never costs you a grab. Menus are fingertip pokes.
 

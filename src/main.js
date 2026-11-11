@@ -3,7 +3,7 @@ import { buildEnvironment } from './env.js';
 import { Input } from './input.js';
 import { Game } from './game.js';
 import { audio } from './audio.js';
-import { particleScale } from './fx.js';
+import { particleScale, fxQuality } from './fx.js';
 import { CY } from './config.js';
 import { makePanel, FONT, roundRect, wrapText } from './text.js';
 
@@ -172,9 +172,31 @@ let frameWaiters = [];
 function nextFrame() { return new Promise((r) => frameWaiters.push(r)); }
 const clock = new THREE.Clock();
 const head = new THREE.Vector3();
+
+// Frame-rate safety net for the Quest: if frames stay slower than ~64 fps for a few seconds,
+// trade detail for speed one step at a time (never back up, so it can't oscillate).
+// Level 1: stronger fixed foveation (cheaper edges). Level 2: half the particles, no street glows.
+// Off in the dev emulator (software rendering is always slow) unless ?adapt=1.
+const quality = { level: 0, ema: 1 / 72, slowFor: 0 };
+function setQuality(n) {
+  quality.level = n;
+  renderer.xr.setFoveation(n >= 1 ? 1 : 0.5);
+  fxQuality.value = n >= 2 ? 0.5 : 1;
+  env.setLowDetail(n >= 2);
+}
+function watchFrameRate(raw, now) {
+  if (quality.level >= 2 || raw > 0.1 || now - xrStart < 6000) return; // skip pauses, loading hitches, session start
+  if (xrDevice && !params.has('adapt')) return;
+  quality.ema += (raw - quality.ema) * 0.05;
+  quality.slowFor = quality.ema > 1 / 64 ? quality.slowFor + raw : Math.max(0, quality.slowFor - raw);
+  if (quality.slowFor > 3) { setQuality(quality.level + 1); quality.slowFor = 0; quality.ema = 1 / 72; }
+}
+
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(0.05, clock.getDelta());
+  const raw = clock.getDelta();
+  const dt = Math.min(0.05, raw);
   const inXR = renderer.xr.isPresenting;
+  if (inXR) watchFrameRate(raw, performance.now());
   if (inXR && needRecenter > 0) { needRecenter--; if (needRecenter === 0) recenterNow(); }
 
   const pointers = input.update(dt, inXR);
@@ -209,4 +231,4 @@ renderer.setAnimationLoop(() => {
 });
 
 // Debug / test hook
-window.SUYA = { camera, game, input, world, renderer, THREE, nextFrame };
+window.SUYA = { camera, game, input, world, renderer, THREE, nextFrame, quality: { get level() { return quality.level; }, set: setQuality } };

@@ -184,6 +184,9 @@ class AudioEngine {
       case 'angry': tone(220, 0.25, 'sawtooth', 0.08, 0, 0.7); tone(180, 0.3, 'sawtooth', 0.06, 0.15, 0.7); break;
       case 'bell': tone(988, 0.4, 'sine', 0.12); tone(1480, 0.5, 'sine', 0.05); break;
       case 'click': tone(900, 0.04, 'square', 0.06); break;
+      case 'flare': noise(0.32, 700, 'bandpass', 0.16, 0, 0.7); noise(0.2, 3500, 'highpass', 0.06, 0.03); break; // fat catching fire
+      case 'slap': noise(0.06, 1400, 'bandpass', 0.55, 0, 0.8); tone(170, 0.07, 'sine', 0.2, 0, 0.6); break; // palms meet
+      case 'snap': noise(0.025, 3200, 'bandpass', 0.6, 0, 3); tone(2400, 0.02, 'square', 0.05); break; // the finger snap
       case 'tick': tone(1500, 0.025, 'sine', 0.025); break; // hand is now over something grabbable
       case 'combo': [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.12, 'square', 0.05, i * 0.05)); break;
       case 'warn': tone(1046, 0.08, 'square', 0.07); tone(1046, 0.08, 'square', 0.07, 0.14); break;

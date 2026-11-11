@@ -53,7 +53,7 @@ You cook it with your hands:
 
 | Step | Gesture |
 |---|---|
-| Keep the fire hot | Pinch the woven fan (abebe) and wave it fast over the grill. The coals flare and embers fly. |
+| Keep the fire hot | Pinch the woven fan (abebe) and wave it fast over the grill. The coals glow, embers fly and fat flares up under the meat. |
 | Take meat | Pinch a stick in the tray (beef, ram, chicken, gizzard, kidney). |
 | Grill and turn | Lay it on the grill. To turn it: pinch, lift, put it back. The gauge under each stick goes green when that side is golden and flashes red before it burns. |
 | Park it | Cooked early? Put it on the KEEP WARM end. |
@@ -63,12 +63,16 @@ You cook it with your hands:
 | Wrap | Pinch the newspaper and lift. |
 | Serve | Let go of the wrap near the customer's open hand. |
 | Get paid | Pinch the naira note — or the phone with the CREDIT ALERT — in their hand. |
+| Lagos handshake | Mama Nkechi (after your first order) and regulars who become friends or family hold out a hand: pull back, slap palms, then pinch as the hands part — the snap. Just for fun; it never blocks play. |
 | Menus | Poke a button with a fingertip, or pinch it. |
 | Pause | Poke **Pause** on the counter edge. Taking the headset off also pauses. |
 
 A soft ring shows what each hand will grab if you pinch right now, so you never have to guess
 depth. On Night 1 a gold arrow and a short label sit on the next thing to touch, and Papa's notebook
 holds the full sentence.
+
+The street is alive: customers blink and their mouths move while they talk, a perfect order gets a
+cheer and a wave, meat hissing onto the grill throws steam, and each yaji shake puffs a little red cloud.
 
 Customers rate every order out of 5 stars: right meats, cooked golden (not raw, not burnt), the
 pepper they asked for, the right sides. Fast, perfect orders earn tips; 4★+ in a row builds a
@@ -179,7 +183,7 @@ src/ui.js           poke/pinch buttons, story board, chalkboard HUD, Papa's note
 src/env.js          night street, stall, lights, NEPA blackout, upgrade props, rival sign
 src/audio.js        procedural Web Audio: ambience, Afrobeats-style loop, sizzle, SFX, optional speech
 src/demo.js         autopilot for trailer footage (drives IWER hands or the desktop pointer)
-src/fx.js           pooled particles (smoke, embers, pepper, coins)
+src/fx.js           pooled particles (smoke, embers, flare-ups, pepper, coins)
 src/text.js         canvas-texture panels and text fitting
 ```
 
@@ -196,6 +200,9 @@ src/text.js         canvas-texture panels and text fitting
   per eye in a busy scene (merged static meshes, instanced burn gauges, vertex-coloured people),
   pooled particles, canvas textures redrawn only when their content changes, everything a customer
   owns freed when they leave (a test checks memory stays flat over 24 customers).
+- **Frame-rate safety net.** If the headset runs slower than about 64 fps for a few seconds, the game
+  steps down once or twice: stronger fixed foveation, then half the particles and no street glows.
+  It never steps back up, so it cannot oscillate.
 - **Saves** are local and versioned; nothing goes to a server.
 
 ## Tests
@@ -207,7 +214,8 @@ src/text.js         canvas-texture panels and text fitting
   results; shop, map, stars, savings, generator, loyalty, Act 1 → Act 2; save migration; draw-call and
   light budgets; seated reach of every interactable; GPU memory over 24 customers; pause regressions.
 - `tests/xr.mjs` — enters VR in Meta's IWER Quest 3 emulator and uses emulated hand joints to grab,
-  place, fan and poke shop tiles; then lets the demo autopilot play the tutorial order end to end.
+  place, fan and poke shop tiles, steps the frame-rate safety net down; then lets the demo autopilot play
+  the tutorial order end to end, including Mama Nkechi's handshake (slap + snap).
 
 ## Deploy
 

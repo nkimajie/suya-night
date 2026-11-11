@@ -248,8 +248,21 @@ export function startDemo({ game, input, world, renderer, nextFrame, device = nu
       await pinchAt(h, c.cash.position.clone(), 0.03);
       await release(h);
       await wait(0.6);
-      if (!c.cash || c.state !== 'paying') return;
+      if (!c.cash || c.state !== 'paying') break;
     }
+    if (c.state === 'shake') await handshake(c, h);
+  }
+
+  // Lagos handshake: draw the hand back, slap palms, pinch-snap as the hands part.
+  async function handshake(c, h) {
+    const hand = c.handLocal();
+    await moveTo(h, hand.clone().add(V(0.02, 0.03, 0.2)), { speed: 0.7, arc: 0 });
+    await wait(0.15);
+    await moveTo(h, hand.clone().add(V(0, 0, 0.01)), { speed: 1.4, arc: 0, min: 0.1 });
+    await wait(0.12);
+    await moveTo(h, hand.clone().add(V(0.01, 0.02, 0.09)), { speed: 0.8, arc: 0, min: 0.08 });
+    h.pinch = true; await wait(0.18);
+    h.pinch = false; await wait(0.5);
   }
 
   async function serveCustomer(c) {

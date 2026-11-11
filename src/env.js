@@ -67,6 +67,7 @@ export function buildEnvironment(world) {
 
   // --- Street lights (emissive + fake glow, no real light) ---
   const glowTex = makeGlowTexture();
+  const streetGlows = [];
   for (const sx of [-5, 4.5]) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 5.5, 8), lambert(0x2a2a2a));
     pole.position.set(sx, FLOOR_Y + 2.75, -6); pole.userData.noRay = true; world.add(pole);
@@ -76,7 +77,10 @@ export function buildEnvironment(world) {
     glow.scale.set(3, 3, 1); glow.position.copy(lamp.position); world.add(glow);
     const pool = new THREE.Mesh(new THREE.CircleGeometry(2.4, 24), new THREE.MeshBasicMaterial({ map: glowTex, color: 0xff8a2a, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
     pool.rotation.x = -Math.PI / 2; pool.position.set(sx, FLOOR_Y + 0.01, -5.6); pool.userData.noRay = true; world.add(pool);
+    streetGlows.push(glow, pool);
   }
+  // Frame-rate safety net: drop the big additive street glows (pure overdraw) when frames run slow.
+  env.setLowDetail = (on) => { for (const g of streetGlows) g.visible = !on; };
 
   // --- Neighbour kiosk (music source) ---
   const kiosk = new THREE.Group(); kiosk.position.set(2.7, FLOOR_Y, -2.6); kiosk.rotation.y = -0.5; world.add(kiosk);

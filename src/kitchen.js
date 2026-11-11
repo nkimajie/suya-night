@@ -182,7 +182,9 @@ export class Kitchen {
     this.smoke = new Particles(220, { soft: 0.0 });
     this.embers = new Particles(160, { additive: true, soft: 0.2 });
     this.pepperFx = new Particles(160, { soft: 0.3 });
-    this.root.add(this.smoke.points, this.embers.points, this.pepperFx.points);
+    this.flames = new Particles(90, { additive: true, soft: 0.45 }); // fat flare-ups licking the meat
+    this.root.add(this.smoke.points, this.embers.points, this.pepperFx.points, this.flames.points);
+    this.fanFlare = 0; this.flareSoundT = 0;
 
     this._buildGrill();
     this._buildTray();
@@ -583,6 +585,8 @@ export class Kitchen {
     // 3) cooking
     const rate = COOK.baseRate * this.cookMul * (0.18 + this.heat);
     let sizzle = 0;
+    const fanning = this.fanFlare > 0;
+    this.fanFlare -= dt; this.flareSoundT -= dt;
     for (let i = 0; i < SLOT_COUNT; i++) {
       const s = this.slots[i];
       if (!s) continue;
@@ -606,6 +610,8 @@ export class Kitchen {
         this.smoke.emit(sx, GRATE_Y + 0.03, sz + (Math.random() - 0.5) * 0.15, { vy: 0.14, spread: 0.03, life: 1.6, size: 0.02, grow: 0.06, color: 0xb0a8a0, alpha: 0.28 });
       }
       if (this.heat > 0.75 && Math.random() < dt * 1.5) this.embers.emit(sx, GRATE_Y + 0.01, sz, { vy: 0.35, spread: 0.12, life: 0.5, size: 0.018, color: 0xff7a20 });
+      // fat drips on the coals and flares up: now and then on its own, often while you fan
+      if (Math.random() < dt * ((this.heat > 0.6 ? (this.heat - 0.6) * 1.5 : 0) + (fanning ? 5 : 0))) this._flare(sx, sz, fanning ? 7 : 4);
     }
     for (const it of this.loose) if (it.kind === 'skewer') it.update(dt);
     for (const [, h] of this.held) if (h.item.kind === 'skewer') h.item.update(dt);
@@ -620,7 +626,7 @@ export class Kitchen {
       if (sh.group.position.distanceTo(sh.home) < 0.002) { sh.group.position.copy(sh.home); sh.state = 'rest'; }
     }
 
-    this.smoke.update(dt); this.embers.update(dt); this.pepperFx.update(dt);
+    this.smoke.update(dt); this.embers.update(dt); this.pepperFx.update(dt); this.flames.update(dt);
   }
 
   // Waving the held fan: like an open hand but stronger. The blade tilts with the motion.
@@ -633,10 +639,20 @@ export class Kitchen {
     g.rotation.set(-0.9 + Math.sin(f.phase) * 0.35 * Math.min(1, speed), 0.4, 0); // blade up, facing the coals
     this._fanAt(g.position, speed, 1.6 * this.fanMul, dt); // only the held fan fans: a bare hand or mouse sweep does nothing
   }
+  _flare(x, z, n) {
+    for (let k = 0; k < n; k++) {
+      this.flames.emit(x + (Math.random() - 0.5) * 0.02, GRATE_Y - 0.005, z + (Math.random() - 0.5) * 0.13, {
+        vy: 0.3 + Math.random() * 0.3, spread: 0.06, life: 0.25 + Math.random() * 0.18, size: 0.016 + Math.random() * 0.016, grow: -0.012,
+        color: k % 3 === 0 ? 0xffd25a : k % 3 === 1 ? 0xff9a2a : 0xff6a14, alpha: 0.85,
+      });
+    }
+    if (this.flareSoundT <= 0) { this.flareSoundT = 0.45; audio.play('flare'); }
+  }
   _fanAt(pl, speed, mult, dt) {
     const inZone = Math.abs(pl.x - G.x) < G.w / 2 + 0.07 && Math.abs(pl.z - G.z) < G.d / 2 + 0.07 && pl.y > CY + 0.02 && pl.y < GRATE_Y + 0.42;
     if (!inZone) return;
     if (speed < 0.4) return;
+    this.fanFlare = 0.25;
     this.heat = Math.min(1, this.heat + (speed - 0.3) * 0.6 * mult * dt);
     this.fanTime += dt;
     if (this.fanTime > 0.5) { this.fanTime = 0; this.hooks.emit('fan'); }
@@ -833,6 +849,8 @@ export class Kitchen {
           it.group.position.set(slotX(slot), GRATE_Y + 0.012, SKEWER_Z);
           if (flipping) { it.flip(); audio.play('flip'); this.hooks.emit('flip'); }
           else { audio.play('sizzleHit'); this.hooks.emit('place', { meat: it.meat }); }
+          for (let k = 0; k < 9; k++) this.smoke.emit(slotX(slot) + (Math.random() - 0.5) * 0.02, GRATE_Y + 0.02, SKEWER_Z + (Math.random() - 0.5) * 0.14, { vy: 0.22 + Math.random() * 0.1, spread: 0.07, life: 0.9, size: 0.014, grow: 0.05, color: 0xe8e2da, alpha: 0.4 });
+          if (slot < HOT_SLOTS && this.heat > 0.3) this._flare(slotX(slot), SKEWER_Z, 4);
           return;
         }
       }
@@ -898,6 +916,7 @@ export class Kitchen {
       this.pepperLayer.material.opacity = Math.min(0.95, this.contents.shakes / 7);
       audio.play('shake');
       for (let i = 0; i < 14; i++) this.pepperFx.emit(gp.x + (Math.random() - 0.5) * 0.02, gp.y - 0.01, gp.z + (Math.random() - 0.5) * 0.02, { vy: -0.3, spread: 0.18, life: 0.6, size: 0.004, color: Math.random() < 0.5 ? 0x8a2a10 : 0xb8642a, gravity: 2 });
+      for (let i = 0; i < 3; i++) this.pepperFx.emit(gp.x, gp.y - 0.03, gp.z, { vy: -0.06, spread: 0.07, life: 0.9, size: 0.012, grow: 0.035, color: 0xa8441c, alpha: 0.22 }); // a little red dust cloud
       this.hooks.emit('pepper', { shakes: this.contents.shakes, level: pepperLevel(this.contents.shakes) });
     }
   }
