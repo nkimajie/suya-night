@@ -8,12 +8,12 @@ Plan: deploy now → feature freeze 14 Nov → record and edit the video 15–16
       (our automated check could not load them) and confirm nothing changed.
 
 ## 1. Deploy (do this first: every other check uses the live link)
-- [ ] Create a **public** GitHub repo and push the `main` branch (the local branch is already `main`).
-- [ ] Repo **Settings → Pages → Source: GitHub Actions**. The workflow builds and publishes `dist/`.
+- [x] Public repo https://github.com/nkimajie/suya-night, `main` pushed.
+- [x] Pages source = GitHub Actions; the workflow builds and publishes `dist/` to https://nkimajie.github.io/suya-night/
 - [ ] Open the Pages URL on a desktop: the info card shows, the stall renders, the mouse works.
 - [ ] Open it with Meta's **Immersive Web Emulator** Chrome extension and play Night 1 with emulated hands.
 - [ ] Put the URL in `docs/SUBMISSION.md`, `README.md` and the Devpost form.
-- [ ] In `index.html`, make `og:image` the absolute URL (`https://<user>.github.io/<repo>/og.png`) so link previews show the picture.
+- [x] `og:image` in `index.html` is the absolute URL (https://nkimajie.github.io/suya-night/og.png) so link previews show the picture.
 
 ## 2. Test on a real Quest 3 / 3S (borrow one for an hour if you can)
 Judges use a Quest 3 or 3S and expect ≥ 60 fps. Open the Pages URL in the Quest Browser, controllers down.

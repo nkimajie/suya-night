@@ -15,7 +15,7 @@ Alternative (128): Fan the coals, grill, spice and wrap Lagos suya with your bar
 Gaming · New Experience (conceived and built inside the competition window)
 
 ## Build link
-[https://<user>.github.io/<repo>/] — open it in the Meta Quest Browser and tap **Enter VR (hands)**.
+https://nkimajie.github.io/suya-night/ — open it in the Meta Quest Browser and tap **Enter VR (hands)**.
 
 ## Video
 [YouTube link, public, under 3:00]

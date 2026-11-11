@@ -7,7 +7,7 @@ Quest Browser, straight from a link.
 ![Handing a wrap of suya to Mama Nkechi with tracked hands](docs/screenshots/06-serve.png)
 
 > Entry for the **Meta VR Start Developer Competition 2026** — Gaming track, New Experience division.
-> **Play:** `[GitHub Pages link]` · **Video:** `[YouTube link]`
+> **Play:** [nkimajie.github.io/suya-night](https://nkimajie.github.io/suya-night/) · **Video:** `[YouTube link]`
 
 | | |
 |---|---|
