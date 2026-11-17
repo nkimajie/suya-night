@@ -39,10 +39,11 @@
       border-radius: 999px; border: 2px solid #ffb347; background: #ff9a2a; color: #2a1408; cursor: pointer;
       box-shadow: 0 0 24px rgba(255, 154, 42, 0.45); }
     #enter:disabled { opacity: .6; cursor: default; background: #2a1408; color: #ffd9a0; box-shadow: none; }
+    #guestNote { margin-top: 7px; font-size: 12px; opacity: .78; }
     #hint { margin-top: 10px; font-size: 13px; opacity: .8; line-height: 1.4; }
     #toggle { pointer-events: auto; margin-top: 8px; background: none; border: 0; color: #ffcf7a; font-size: 12px;
       text-decoration: underline; cursor: pointer; }
-    body.collapsed #tag, body.collapsed #facts, body.collapsed #hint, body.collapsed #logo { display: none; }
+    body.collapsed #tag, body.collapsed #facts, body.collapsed #hint, body.collapsed #logo, body.collapsed #guestNote { display: none; }
     body.collapsed #card { width: auto; padding: 10px 14px; }
     /* screenshot / in-headset / demo footage: keep the picture clean */
     body.clean #card, body.in-xr #card, body.demo #card { display: none; }
@@ -60,8 +61,9 @@
         <li>🔥 One night ≈ 5 min</li>
         <li>🔊 Sound on</li>
       </ul>
-      <button id="enter" disabled>Checking for VR…</button>
-      <div id="hint">On a Meta Quest: tap <b>Enter VR (hands)</b>. Hold the Meta button to recenter.<br />On a computer: preview with the mouse — click = pinch, drag the woven fan fast over the grill.</div>
+      <button id="enter" disabled>Loading…</button>
+      <div id="guestNote">No account needed — your progress saves on this device.</div>
+      <div id="hint">On a Meta Quest: tap <b>Play as Guest</b>. Hold the Meta button to recenter.<br />On a computer: preview with the mouse — click = pinch, drag the woven fan fast over the grill.</div>
       <button id="toggle" type="button">Hide this card</button>
     </div>
   </div>

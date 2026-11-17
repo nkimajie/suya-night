@@ -15,7 +15,7 @@ Alternative (128): Fan the coals, grill, spice and wrap Lagos suya with your bar
 Gaming · New Experience (conceived and built inside the competition window)
 
 ## Build link
-https://nkimajie.github.io/suya-night/ — open it in the Meta Quest Browser and tap **Enter VR (hands)**.
+https://nkimajie.github.io/suya-night/ — open it in the Meta Quest Browser and tap **Play as Guest** (no account needed).
 
 ## Video
 [YouTube link, public, under 3:00]
@@ -68,7 +68,7 @@ the kilishi masters of Kano.
 ## Testing instructions (paste into the testing / notes field)
 
 1. On a Meta Quest 3 or 3S, open the build link in the **Quest Browser**. Sound on.
-2. Put the controllers down. Tap **Enter VR (hands)**. If the browser asks about hand tracking, tap **Allow**.
+2. Put the controllers down. Tap **Play as Guest** (no account or sign-up; it opens VR). If the browser asks about hand tracking, tap **Allow**.
 3. Sit. If the stall is not in front of you, hold the Meta button to recenter.
 4. Poke **New story** with a fingertip (or pinch it). Night 1 is a guided tutorial (~5 min).
 5. **Pause** is the small button on the counter edge, left of the time/money display. Removing the headset also pauses.

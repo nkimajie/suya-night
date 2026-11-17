@@ -162,7 +162,7 @@ URL options (dev server):
 
 | Option | What it does |
 |---|---|
-| `?emulate=1` | Meta's IWER Quest 3 emulator with tracked hands, in a normal desktop browser. Click **Enter VR**. |
+| `?emulate=1` | Meta's IWER Quest 3 emulator with tracked hands, in a normal desktop browser. Click **Play as Guest**. |
 | `?emulate=1&demo=1` | The game plays itself with emulated hands (fan, grill, turn, yaji, sides, wrap, serve, get paid). Add `&night=2` to start on another night. Used to record the trailer without a headset. |
 | `?demo=1` | Same autopilot with the desktop pointer (works on the deployed build too). |
 | `?cam=head` | Desktop view from the seated eye. |
@@ -174,7 +174,7 @@ URL options (dev server):
 ## How it's built
 
 ```
-index.html          landing card + Enter VR button (no framework)
+index.html          landing card + Play as Guest button (no framework)
 src/main.js         renderer, WebXR session (immersive-vr + hand-tracking), recentering, frame loop, demo/camera modes
 src/input.js        hands / controllers / mouse  →  one Pointer API: pos, tip, pinching, pinchStarted, vel, candidates()
 src/kitchen.js      grill + coals, skewers + cooking, tray, newspaper, yaji shake detection, sides, wrapping, aim rings
@@ -228,7 +228,7 @@ GitHub Pages via `.github/workflows/deploy.yml` (builds `dist/` on every push to
 
 1. Create a public GitHub repo and push `main`.
 2. Settings → Pages → Source: **GitHub Actions**.
-3. The workflow run shows the site URL. Open it in the Quest Browser and tap **Enter VR (hands)**.
+3. The workflow run shows the site URL. Open it in the Quest Browser and tap **Play as Guest**.
 
 After the competition deadline, remove the `push:` trigger in the workflow so the judged build
 cannot change. See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) and

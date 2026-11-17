@@ -82,18 +82,27 @@ game.onRecenter = () => { needRecenter = 2; };
 
 // ---------------------------------------------------------------- XR session
 const enterBtn = document.getElementById('enter');
+const PLAY_LABEL = '▶ Play as Guest';
 async function setupEnter() {
   let supported = false;
   try { supported = !!navigator.xr && (await navigator.xr.isSessionSupported('immersive-vr')); } catch { supported = false; }
+  const hint = document.getElementById('hint');
+  // No accounts: everyone plays as a guest; progress lives in this browser (src/save.js).
+  enterBtn.textContent = PLAY_LABEL;
+  enterBtn.disabled = false;
   if (!supported) {
-    enterBtn.textContent = window.isSecureContext ? 'No VR headset here — desktop preview' : 'VR needs HTTPS — desktop preview';
-    enterBtn.disabled = true;
+    if (hint) hint.innerHTML = (window.isSecureContext ? 'No VR headset found, so this is the <b>desktop preview</b>.' : 'VR needs HTTPS, so this is the <b>desktop preview</b>.')
+      + '<br />Click = pinch; drag the woven fan fast over the grill. On a Meta Quest, open this link in the Quest Browser.';
+    enterBtn.onclick = () => {
+      audio.start();
+      document.body.classList.add('collapsed');
+      document.getElementById('toggle').textContent = 'Show info';
+      enterBtn.textContent = 'Playing as Guest — use the mouse';
+      enterBtn.disabled = true;
+    };
     return;
   }
-  enterBtn.textContent = 'Enter VR (hands)';
-  enterBtn.disabled = false;
-  const hint = document.getElementById('hint');
-  if (hint) hint.innerHTML = 'Sit down and put your controllers away: <b>hands only</b>.<br />If the browser asks about hand tracking, tap <b>Allow</b>. Hold the Meta button to recenter.';
+  if (hint) hint.innerHTML = 'Opens VR. Sit down and put your controllers away: <b>hands only</b>.<br />If the browser asks about hand tracking, tap <b>Allow</b>. Hold the Meta button to recenter.';
   enterBtn.onclick = async () => {
     audio.start();
     try {
@@ -122,7 +131,7 @@ function onSessionEnd() {
   document.body.classList.remove('in-xr');
   world.position.set(0, 0, 0);
   world.rotation.set(0, 0, 0);
-  enterBtn.textContent = 'Enter VR (hands)';
+  enterBtn.textContent = PLAY_LABEL;
   enterBtn.disabled = false;
   game.systemPause();
 }

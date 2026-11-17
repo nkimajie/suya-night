@@ -17,7 +17,7 @@ Plan: deploy now → feature freeze 14 Nov → record and edit the video 15–16
 
 ## 2. Test on a real Quest 3 / 3S (borrow one for an hour if you can)
 Judges use a Quest 3 or 3S and expect ≥ 60 fps. Open the Pages URL in the Quest Browser, controllers down.
-- [ ] "Enter VR (hands)" → allow hand tracking → the stall appears in front at a comfortable seated height.
+- [ ] "Play as Guest" → allow hand tracking → the stall appears in front at a comfortable seated height.
 - [ ] Menu buttons respond to a fingertip poke and to a pinch.
 - [ ] Fan: pinching the woven fan and waving it over the grill fills the fire bar and throws embers.
 - [ ] Tray, grill turn, paper, yaji (6 shakes = PLENTY), sides, wrap, hand-over and naira all work first try.
@@ -46,7 +46,7 @@ the real game through Meta's IWER Quest 3 emulator with tracked-hand models, so 
 gameplay. Put a small caption on screen: *"Captured in Meta's Immersive Web Emulator."*
 
 Setup: `npm run dev`, Chrome window at 1920×1080 (or full screen), sound on, start a screen recorder
-(macOS: Cmd+Shift+5 → record selected portion; or OBS). Open a URL, click **Enter VR** (that click
+(macOS: Cmd+Shift+5 → record selected portion; or OBS). Open a URL, click **Play as Guest** (that click
 also starts the audio), and record:
 
 | Clip | URL (dev server, http://localhost:5173/…) | What you get |
