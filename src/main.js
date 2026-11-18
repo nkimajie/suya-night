@@ -241,4 +241,4 @@ renderer.setAnimationLoop(() => {
 });
 
 // Debug / test hook
-window.SUYA = { camera, game, input, world, renderer, THREE, nextFrame, quality: { get level() { return quality.level; }, set: setQuality } };
+window.SUYA = { camera, game, input, world, renderer, THREE, nextFrame, audio, quality: { get level() { return quality.level; }, set: setQuality } };

@@ -1,5 +1,5 @@
 // Procedural Web Audio: ambience (generator, charcoal crackle, grill sizzle, street),
-// an Afrobeats-style loop "from the shop next door", SFX and optional speech synthesis.
+// an Afrobeats-style loop "from the shop next door", SFX, and the recorded character voices.
 
 class AudioEngine {
   constructor() {
@@ -27,8 +27,10 @@ class AudioEngine {
     const d = this.noise.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
 
+    this.voiceBus = ctx.createGain(); this.voiceBus.gain.value = 1.0; this.voiceBus.connect(this.master);
     this._ambience();
     this._music();
+    this.loadVoices();
   }
 
   suspend() { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); }
@@ -88,7 +90,7 @@ class AudioEngine {
     const ctx = this.ctx;
     this.musicGain = ctx.createGain(); this.musicGain.gain.value = 0.32;
     this.musicLP = ctx.createBiquadFilter(); this.musicLP.type = 'lowpass'; this.musicLP.frequency.value = 1400;
-    this.musicGain.connect(this.musicLP); this.musicLP.connect(this.master);
+    this.musicDuck = ctx.createGain(); this.musicGain.connect(this.musicLP); this.musicLP.connect(this.musicDuck); this.musicDuck.connect(this.master);
     const bpm = 104, step = 60 / bpm / 4; // 16th notes
     let next = ctx.currentTime + 0.2, idx = 0;
     // A minor-ish log-drum bassline and a two-chord pluck pattern.
@@ -215,21 +217,77 @@ class AudioEngine {
     }
   }
 
-  say(text, { pitch = 1, rate = 1 } = {}) {
-    if (!this.voice || !('speechSynthesis' in window)) { this.murmur(pitch); return; }
-    try {
-      const synth = window.speechSynthesis;
-      synth.cancel();
-      const u = new SpeechSynthesisUtterance(text.replace(/[*_]/g, ''));
-      const voices = synth.getVoices();
-      if (!voices.length) this.murmur(pitch); // some headsets ship no voices: never leave a customer silent
-      const v = voices.find((x) => /en[-_]NG/i.test(x.lang)) || voices.find((x) => /en[-_]GB/i.test(x.lang)) || voices.find((x) => /^en/i.test(x.lang));
-      if (v) u.voice = v;
-      u.pitch = pitch; u.rate = rate; u.volume = 0.9;
-      synth.speak(u);
-    } catch { this.murmur(pitch); }
+  // ---------------------------------------------------------------- recorded voices
+  // public/voices/index.json maps "f|<exact line>" / "m|<exact line>" to a clip (built by `npm run voices`
+  // from voices-raw/, see src/voicelines.js). The small compressed files are fetched in the background;
+  // a clip is decoded only when its line is said, and a few decoded clips are kept (LRU).
+  loadVoices() {
+    if (this._clips) return;
+    this._clips = {}; this._raw = new Map(); this._decoded = new Map(); this._srcs = []; this._sayId = 0;
+    fetch('voices/index.json').then((r) => (r.ok ? r.json() : {})).then((j) => {
+      this._clips = (j && j.clips) || {};
+      const urls = [...new Set(Object.values(this._clips))];
+      let next = 0;
+      const pump = () => { const u = urls[next++]; if (u) this._fetchClip(u).then(pump); };
+      for (let i = 0; i < 3; i++) pump();
+    }).catch(() => {});
   }
-  stopSpeech() { try { window.speechSynthesis?.cancel(); } catch { /* ignore */ } }
+  hasClip(sex, text) { return !!this._clips?.[`${sex}|${text}`]; }
+  _fetchClip(url) {
+    if (!this._raw.has(url)) this._raw.set(url, fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
+    return this._raw.get(url);
+  }
+  async _clipBuffer(url) {
+    const hit = this._decoded.get(url);
+    if (hit) { this._decoded.delete(url); this._decoded.set(url, hit); return hit; }
+    const data = await this._fetchClip(url);
+    if (!data || !this.ctx) return null;
+    const buf = await this.ctx.decodeAudioData(data.slice(0)).catch(() => null);
+    if (buf) { this._decoded.set(url, buf); if (this._decoded.size > 24) this._decoded.delete(this._decoded.keys().next().value); }
+    return buf;
+  }
+
+  // Speak a line (or a list of sentences said one after another) in the speaker's recorded voice.
+  // Lines without a recording, or with voices off, get the murmur instead.
+  say(lines, { pitch = 1, sex = 'm' } = {}) {
+    this.stopSpeech();
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    const parts = lines == null ? [] : Array.isArray(lines) ? lines : [lines];
+    const urls = [];
+    if (this.voice && this._clips) for (const p of parts) { const u = this._clips[`${sex}|${p}`]; if (!u) break; urls.push(u); }
+    if (!urls.length) { this.murmur(pitch); return; }
+    // one woman and one man voice everyone: a small pitch shift per character keeps them apart
+    const rate = Math.min(1.07, Math.max(0.94, 1 + (pitch - 1) * 0.2));
+    this._playClips(urls, this._sayId, rate);
+  }
+  async _playClips(urls, id, rate) {
+    const asked = performance.now();
+    let when = 0;
+    for (const u of urls) {
+      const buf = await this._clipBuffer(u);
+      if (id !== this._sayId || !buf || !this.ctx) return; // a newer line started, or the clip failed
+      if (!when && performance.now() - asked > 1500) return; // arrived too late: the bubble has moved on
+      const ctx = this.ctx, src = ctx.createBufferSource();
+      src.buffer = buf; src.playbackRate.value = rate; src.connect(this.voiceBus);
+      const t = Math.max(ctx.currentTime + 0.01, when);
+      src.start(t); when = t + buf.duration / rate + 0.15;
+      this._srcs.push(src);
+      src.onended = () => { this._srcs = this._srcs.filter((x) => x !== src); if (!this._srcs.length) this._duck(false); };
+      this._duck(true);
+    }
+  }
+  _duck(on) {
+    if (!this.musicDuck) return;
+    const g = this.musicDuck.gain, t = this.ctx.currentTime;
+    g.cancelScheduledValues(t); g.setTargetAtTime(on ? 0.45 : 1, t, on ? 0.08 : 0.4);
+  }
+  stopSpeech() {
+    if (!this._srcs) return;
+    this._sayId++;
+    for (const s of this._srcs) { try { s.stop(); } catch { /* already stopped */ } }
+    this._srcs = [];
+    if (this.ctx) this._duck(false);
+  }
 }
 
 export const audio = new AudioEngine();

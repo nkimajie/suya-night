@@ -14,3 +14,6 @@ Development and test tools (not shipped in the build): [Vite](https://vitejs.dev
 
 Everything else — code, characters, dialogue, models, textures, music and sound effects — is
 original to Suya Night and generated procedurally in code.
+
+## Character voices
+Character voices generated with Microsoft Azure neural text-to-speech (en-NG Abeo and Ezinne), processed by `tools/voices.mjs` into `public/voices/`.

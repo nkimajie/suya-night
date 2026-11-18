@@ -26,7 +26,7 @@ Judges use a Quest 3 or 3S and expect ≥ 60 fps. Open the Pages URL in the Ques
 - [ ] Taking the headset off pauses; putting it back on resumes on the pause board.
 - [ ] Night 2 blackout: the lantern is bright enough to judge doneness.
 - [ ] Frame rate smooth with 2 customers and a full grill (Night 7 is the heaviest).
-- [ ] Voices: off by default. Try turning them on in Settings; if they sound bad, leave them off.
+- [ ] Voices: Nigerian-English character voices, on by default; Settings → Voices turns them off (lines then murmur).
 - [ ] Declining hand tracking shows the "Can't see your hands" card after ~5 s.
 
 No headset? Everything above except frame rate and real hand feel is covered by `npm test`

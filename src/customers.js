@@ -4,6 +4,7 @@ import { CY, LAYOUT, MEATS, SIDES, PEPPER_LABEL, naira } from './config.js';
 import { FLOOR_Y } from './env.js';
 import { makePanel, FONT, roundRect, wrapText, countLines, fitFont } from './text.js';
 import { audio } from './audio.js';
+import { LINES } from './story.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -249,7 +250,11 @@ export class Customer {
     return this.world.worldToLocal(out);
   }
 
-  say(text, kind = 'talk') {
+  // text: a line, or a list of sentences (each can have its own recording). voice: what to play
+  // instead of the text (a greeting without the order, which only the bubble shows); null = murmur.
+  say(text, kind = 'talk', voice) {
+    const parts = Array.isArray(text) ? text : [text];
+    text = parts.join(' ');
     this.bubbleText = text;
     this.bubble.visible = true;
     this.bubbleT = 0;
@@ -266,7 +271,13 @@ export class Customer {
       for (; fs > h * 0.08; fs *= 0.92) { c.font = FONT(fs, 600); if (countLines(c, text, w * 0.92) * fs * 1.18 <= h * 0.66) break; }
       wrapText(c, text, w * 0.04, h * 0.27 + fs, w * 0.92, fs * 1.18);
     });
-    audio.say(text, this.char.voice || {});
+    audio.say(voice !== undefined ? voice : parts, { ...(this.char.voice || {}), sex: this.char.sex || 'm' });
+  }
+
+  greet() {
+    const g = this.char.greet ? this.char.greet(this.order) : orderSentence(this.order);
+    if (typeof g === 'string') this.say(g, 'talk', this.char.greetVoice || null);
+    else this.say(g.text, 'talk', g.voice);
   }
 
   drawCard() {
@@ -321,7 +332,7 @@ export class Customer {
         g.position.z += (LAYOUT.customerZ - g.position.z) * Math.min(1, dt * 1.5);
         g.rotation.y = Math.sign(d) * Math.PI / 2 * Math.min(1, Math.abs(d) * 2);
         walking = Math.abs(d) > 0.01;
-        if (!walking) { g.position.copy(targetPos); g.rotation.y = 0; this.state = 'ordering'; this.stateT = 0; this.say(this.char.greet ? this.char.greet(this.order) : orderSentence(this.order)); }
+        if (!walking) { g.position.copy(targetPos); g.rotation.y = 0; this.state = 'ordering'; this.stateT = 0; this.greet(); }
         break;
       }
       case 'ordering':
@@ -331,7 +342,7 @@ export class Customer {
         if (!paused && !this.infinite) this.patience -= dt;
         const pf = this.patience / this.patienceMax;
         if (Math.round(Math.max(0, pf) * 40) !== this.cardDrawnPatience) this.drawCard();
-        if (pf < 0.25 && !this.warned) { this.warned = true; this.say(this.char.hurry || 'Oga, abeg hurry up!', 'angry'); }
+        if (pf < 0.25 && !this.warned) { this.warned = true; this.say(this.char.hurry || LINES.hurry, 'angry'); }
         if (this.patience <= 0) this.onTimeout();
         break;
       }
@@ -340,7 +351,7 @@ export class Customer {
         break;
       case 'shake': // Lagos handshake offered: palm slap, then a snap as the hands pull apart
         if (this.stateT > (this.shook ? 1.6 : 4.5)) {
-          if (!this.shook) this.say(pick(['Ah, next time o!', 'You dey busy, I understand.']), 'talk');
+          if (!this.shook) this.say(pick(LINES.shakeTimeout), 'talk');
           this.leave();
         }
         break;

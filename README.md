@@ -140,7 +140,7 @@ Devpost gallery versions (3:2, captioned) are in [docs/gallery/](docs/gallery/).
 - **Quick in, quick out.** Two story cards, then the first action — fanning a dying fire — within
   seconds. Pause on headset removal or system menu; resume where you left off.
 - **Comfortable and readable.** No locomotion, no snap turns, a fixed horizon, large canvas text,
-  voices off by default (speech bubbles always show), Story mode with relaxed timers.
+  Nigerian-English character voices on by default (Settings → Voices; speech bubbles always show), Story mode with relaxed timers.
 - **Accessible.** Settings has **One-hand play** (the fire tends itself, so every step needs only one
   hand) and **Counter height** (lower / normal / higher, for different chairs, wheelchairs and arm
   reach). Doneness is shown by bar length, a white "golden" mark, flashing and a warning sound, not by
@@ -238,3 +238,5 @@ cannot change. See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) and
 
 Game code, story, characters and generated art/audio: © 2026 the Suya Night team. All rights reserved
 (see [LICENSE](LICENSE)). Third-party software: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Character voices generated with Microsoft Azure neural text-to-speech (en-NG Abeo and Ezinne).

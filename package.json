@@ -9,7 +9,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node tests/smoke.mjs && node tests/xr.mjs",
-    "shots": "node tests/shots.mjs"
+    "shots": "node tests/shots.mjs",
+    "voices": "node tools/voices.mjs",
+    "voice-script": "node tools/voice-script.mjs"
   },
   "dependencies": {
     "three": "^0.170.0"

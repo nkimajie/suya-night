@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CY, LAYOUT, MODES, MEATS, PEPPER_LABEL, naira } from './config.js';
 import { Kitchen, doneness } from './kitchen.js';
 import { Customer, buildPerson, disposeDeep, animateFace } from './customers.js';
-import { CHARACTERS, genericCharacter, driverCharacter, COMPLAINTS, pick, INTRO, NIGHT_INTRO, NIGHT_PASS, NIGHT_FAIL, ENDING_GOOD, ENDING_BAD_BLOGGER, SHOP_INTRO, ACT2_INTRO, ACT2_END } from './story.js';
+import { CHARACTERS, genericCharacter, driverCharacter, COMPLAINTS, pick, INTRO, NIGHT_INTRO, NIGHT_PASS, NIGHT_FAIL, ENDING_GOOD, ENDING_BAD_BLOGGER, SHOP_INTRO, ACT2_INTRO, ACT2_END, LINES, GENERIC_HAPPY } from './story.js';
 import { Board, Hud, Notebook, Highlight, Button } from './ui.js';
 import { makePanel, FONT, roundRect, fitFont } from './text.js';
 import { FLOOR_Y, GEN_AT } from './env.js';
@@ -50,7 +50,7 @@ export class Game {
     this.head = new THREE.Vector3(0, 0, 0);
     this.save = loadSave();
     this.mode = MODES[this.save.mode] ? this.save.mode : 'story';
-    audio.voice = this.save.voice;
+    audio.voice = this.save.voices;
     this.priceMul = 1; this.tipMul = 1; this.patienceMul = 1;
 
     this.kitchen = new Kitchen(world, {
@@ -108,7 +108,15 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ progress helpers
-  persist() { this.save.mode = this.mode; this.save.voice = audio.voice; writeSave(this.save); }
+  // A story character's recorded line (murmur if not recorded). delay in seconds, e.g. after a jingle.
+  voiceOf(actor, text, delay = 0) {
+    const ch = CHARACTERS[actor];
+    const go = () => audio.say(text, { ...(ch?.voice || {}), sex: ch?.sex || 'm' });
+    if (!delay) { go(); return; }
+    const state = this.state;
+    setTimeout(() => { if (this.state === state) go(); }, delay * 1000);
+  }
+  persist() { this.save.mode = this.mode; this.save.voices = audio.voice; writeSave(this.save); }
   unlocked(n) { return n === 1 || this.save.allOpen || (this.save.levels[n - 1]?.stars || 0) >= 1; }
   nextLevel() {
     for (let n = 1; n <= LEVEL_COUNT; n++) if (this.unlocked(n) && !(this.save.levels[n]?.stars >= 1)) return n;
@@ -187,7 +195,7 @@ export class Game {
 
   playStory(steps, onDone, i = 0) {
     this.state = 'story';
-    if (i >= steps.length) { this.setActor(null); onDone(); return; }
+    if (i >= steps.length) { audio.stopSpeech(); this.setActor(null); onDone(); return; }
     const s = steps[i];
     this.setActor(s.actor || null);
     this.actorTalk = s.actor && s.speaker ? Math.min(5, 0.8 + s.text.length * 0.045) : 0;
@@ -198,7 +206,7 @@ export class Game {
         ...(steps.length > 1 && i < steps.length - 1 ? [{ label: 'Skip', onPress: () => this.playStory(steps, onDone, steps.length), style: { color: '#8a7a6a', text: '#fff' } }] : []),
       ],
     });
-    if (s.actor && s.speaker) audio.say(s.text, CHARACTERS[s.actor]?.voice || {});
+    if (s.actor && s.speaker) this.voiceOf(s.actor, s.text);
   }
 
   setActor(id) {
@@ -497,7 +505,7 @@ export class Game {
       if (c.state === 'paying' && c.cash && c.cash.position.distanceTo(pos) < 0.1) {
         if (c.cashPending) {
           audio.play('warn');
-          c.say(pick(['Ehn… network wahala. Abeg take cash.', 'E never land? Na the bank o! Here, cash.', 'Pending again? Okay okay, take cash.']), 'talk');
+          c.say(pick(LINES.transferCash), 'talk');
           c.showCash(c.cashAmount);
           return true;
         }
@@ -535,9 +543,9 @@ export class Game {
           if (snap) {
             this.snaps = (this.snaps || 0) + 1;
             audio.play('snap'); c.hop();
-            c.say(pick(['Hehe! Correct guy!', 'Na so! You sabi am!', 'Eheh! Original Lagos handshake!']), 'happy');
+            c.say(pick(LINES.snap), 'happy');
             this.showPop(hand.clone(), 'RESPECT!', 'Lagos handshake', '#ff8ad8');
-          } else c.say('Hehe! Next time, snap am!', 'happy');
+          } else c.say(LINES.noSnap, 'happy');
         } else if (this.shakesDone < 2) { hint = hand; hintText = 'NOW PINCH = SNAP!'; }
       }
     }
@@ -549,8 +557,8 @@ export class Game {
     const amt = c.collectCash();
     if (c.wantShake && !auto && this.state === 'playing') {
       c.offerShake(c.tutorialCustomer
-        ? 'Ehen! You be Mallam Sani pikin true true. Oya, shake me!'
-        : pick(['My guy! Shake me jare!', 'Oya, give me Lagos handshake!', 'Family! Bring hand!']));
+        ? LINES.shakeOfferTutorial
+        : pick(LINES.shakeOffer));
       c.shakeArmed = new Set();
     }
     this.money += amt;
@@ -640,18 +648,18 @@ export class Game {
         c.say(c.char.loyal[tierUp - 1], 'happy');
         audio.play('loyal');
         this.showToast(`♥ ${shortName(c.char.name)} is now ${TIER_NAME[tierUp]}: more patience, bigger tips`, '#ff8ad8', 3.5);
-      } else c.say(r.stars === 5 ? pick(c.char.happy || ['Correct!']) : `Not bad o. ${pick(COMPLAINTS[r.main] || ['Small thing missing.'])}`, 'happy');
+      } else c.say(r.stars === 5 ? pick(c.char.happy || GENERIC_HAPPY) : [LINES.notBad, pick(COMPLAINTS[r.main] || [LINES.smallThing])], 'happy');
       if (r.stars === 5) c.cheer();
     } else {
       c.mood = 'angry'; audio.play('angry');
       const line = pick(COMPLAINTS[r.main] || ['E no correct.']);
-      c.say(pay < c.price && pay > 0 ? `${line} I dey pay half.` : pay === 0 ? `${line} I no dey pay for this!` : line, 'angry');
+      c.say(pay < c.price && pay > 0 ? [line, LINES.payHalf] : pay === 0 ? [line, LINES.payNone] : line, 'angry');
     }
     c.stateT = 0;
     if (pay + tip > 0) {
       c.state = 'paying';
       c.showCash(pay + tip, { transfer: c.transfer, pending: c.transferPending });
-      if (c.transfer && r.stars >= 4 && !tierUp) c.say(c.transferPending ? 'I don send am! E go soon land.' : pick(['I don transfer am! Check the alert.', 'Sent! Check your alert, boss.']), 'happy');
+      if (c.transfer && r.stars >= 4 && !tierUp) c.say(c.transferPending ? LINES.transferPending : pick(LINES.transferSent), 'happy');
     }
     else { c.leave(); this.tutorialEvent('cash'); }
     this.updateHud();
@@ -738,7 +746,7 @@ export class Game {
 
     if (!pass) {
       this.setActor('adebayo');
-      audio.say(NIGHT_FAIL.text, CHARACTERS.adebayo.voice);
+      this.voiceOf('adebayo', NIGHT_FAIL.text);
       const why = this.money >= T && rating < need ? `\nThe money was enough, but the rating must be ${need}★ or better.` : '';
       this.resultsDef = {
         title: `Night ${n} — Not enough`, accent: '#e0443a', speaker: NIGHT_FAIL.speaker, text: `${NIGHT_FAIL.text}\n\n${lines}${why}`,
@@ -756,6 +764,7 @@ export class Game {
       };
     } else {
       const p = NIGHT_PASS[n] || { speaker: '', text: '' };
+      if (p.actor) this.voiceOf(p.actor, p.text, 1.2); // the phone call, after the fanfare
       this.resultsDef = {
         title: `Night ${n} complete! ${starStr(stars)}`, accent: '#9be08a', speaker: p.speaker, text: `${p.text}\n\n${lines}`,
         buttons: [{ label: `Night ${n + 1}`, onPress: () => this.showNightIntro(n + 1), style: { color: '#9be08a', sub: 'next' } }, shopBtn, mapBtn],
@@ -775,7 +784,7 @@ export class Game {
     this.clearNight();
     this.hideHud();
     const steps = ENDING_GOOD.slice();
-    if (this.bloggerStars !== null && this.bloggerStars < 4) steps[0] = { ...steps[0], text: ENDING_BAD_BLOGGER + ' But the street has spoken: this stall stays.' };
+    if (this.bloggerStars !== null && this.bloggerStars < 4) steps[0] = { ...steps[0], text: ENDING_BAD_BLOGGER };
     this.playStory(steps, () => {
       this.save.act1Done = true;
       this.save.upgrades.sign = true; // story reward: the new "Mallam Sani & Son" sign
@@ -909,7 +918,7 @@ export class Game {
       if (this.blackout === 'before' && e >= bo.start) {
         this.blackout = 'during'; this.env.setPower(false); audio.setPower(false); audio.play('powerOff');
         this.showToast(this.save.upgrades.generator ? 'NEPA don take light! Starting the gen…' : 'NEPA don take light! Work by lantern.', '#ffb347', 4);
-        const c = this.customers.find((x) => x.state === 'waiting'); if (c) c.say('Ah! NEPA don take light again!', 'talk');
+        const c = this.customers.find((x) => x.state === 'waiting'); if (c) c.say(LINES.nepa, 'talk');
       } else if (this.blackout === 'during' && this.save.upgrades.generator && !this.genStarted && e >= bo.start + 6) {
         this.genStarted = true; this.env.setPower(true); audio.setPower(true); audio.play('gen'); this.env.setGenRunning(true);
         this.showToast('Gen don start! Light is back. Money well spent.', '#9be08a', 3.5);

@@ -5,7 +5,7 @@ const SKIN = [0x3b2416, 0x4a2c1a, 0x5a3520, 0x6b4226, 0x7a4b2c, 0x8a5a36];
 
 export const CHARACTERS = {
   nkechi: {
-    name: 'Mama Nkechi', patience: 1.6, voice: { pitch: 1.25, rate: 0.95 },
+    name: 'Mama Nkechi', sex: 'f', patience: 1.6, greetVoice: 'Ah, Aminu! Where your papa? ... Ehen. Your papa know.', voice: { pitch: 1.25, rate: 0.95 },
     look: { skin: SKIN[3], top: 0xd23a7a, bottom: 0x2a6fb0, robe: true, robeTrim: 0xffd34d, hat: 'gele', hatColor: 0xf0a020, build: 1.15, height: 1.64 },
     greet: (o) => `Ah, Aminu! Where your papa? ... Ehen. Give me ${lc(orderSentence(o))} Your papa know.`,
     happy: ['Ehen! Na so your papa dey do am. God bless you, my son.', 'This one sweet well well! Mallam Sani go proud of you.'],
@@ -13,7 +13,7 @@ export const CHARACTERS = {
     loyal: ['Aminu, you be my person now! I go tell the whole market.', 'My son! You be family now. Na only here I dey buy suya.'],
   },
   tolu: {
-    name: 'Tolu (cab driver)', patience: 0.62, voice: { pitch: 1.0, rate: 1.25 },
+    name: 'Tolu (cab driver)', patience: 0.62, greetVoice: 'Boss, quick quick abeg! I get ride for five minutes.', voice: { pitch: 1.0, rate: 1.25 },
     look: { skin: SKIN[2], top: 0x1f1f1f, bottom: 0x34495e, hat: 'short', phone: true, height: 1.76 },
     greet: (o) => `Boss, quick quick abeg! I get ride for five minutes. ${orderSentence(o)}`,
     happy: ['You sharp! Five stars for you, boss.', 'Correct! I dey go. Rider dey wait.'],
@@ -22,7 +22,7 @@ export const CHARACTERS = {
     loyal: ['My guy! I don tell all the OyaGo drivers about you.', 'Family! When I buy my own car, first trip na you.'],
   },
   emeka: {
-    name: 'Big Boss Emeka', patience: 1.0, tipMul: 2.5, voice: { pitch: 0.85, rate: 0.95 },
+    name: 'Big Boss Emeka', patience: 1.0, greetVoice: 'My guy! Na me, Big Boss. Madam no dey chop pepper o, do am well!', tipMul: 2.5, voice: { pitch: 0.85, rate: 0.95 },
     look: { skin: SKIN[1], top: 0xf2f2f2, bottom: 0xf2f2f2, robe: true, robeTrim: 0x2a6a3a, hat: 'kufi', hatColor: 0xb81a1a, chain: true, build: 1.3, height: 1.8 },
     greet: (o) => `My guy! Na me, Big Boss. ${orderSentence(o)} Madam no dey chop pepper o, do am well!`,
     happy: ['See am! Keep the change, my brother. Madam don smile!', 'Correct guy! Big tip for you.'],
@@ -30,7 +30,7 @@ export const CHARACTERS = {
     loyal: ['My guy, I dey tell the whole office about you!', 'Aminu, when you ready to expand, call me. I go invest.'],
   },
   fatima: {
-    name: 'Corper Fatima', patience: 1.1, voice: { pitch: 1.3, rate: 1.0 },
+    name: 'Corper Fatima', sex: 'f', patience: 1.1, greetVoice: 'Sannu! I\'m serving here, from Kano. At home we never eat suya without masa.', voice: { pitch: 1.3, rate: 1.0 },
     look: { skin: SKIN[3], top: 0xc8b27a, bottom: 0x2e6b3a, hat: 'hijab', hatColor: 0x2e7d4f, badge: true, longSleeve: true, height: 1.62 },
     greet: (o) => `Sannu! I'm serving here, from Kano. ${orderSentence(o)} At home we never eat suya without masa.`,
     happy: ['Na gaskiya! This one taste like home.', 'Madalla! You do am the Kano way.'],
@@ -38,7 +38,7 @@ export const CHARACTERS = {
     loyal: ['Na gaskiya, you be my Lagos family now.', 'When I go back to Kano, I go send all my people here.'],
   },
   femi: {
-    name: 'Uncle Femi', patience: 1.0, voice: { pitch: 0.9, rate: 0.9 },
+    name: 'Uncle Femi', patience: 1.0, greetVoice: 'Good evening, my son. It\'s... for a friend. My doctor — I mean, my friend — likes it the proper way.', voice: { pitch: 0.9, rate: 0.9 },
     look: { skin: SKIN[0], top: 0x22304a, bottom: 0x22304a, tie: 0x8a1a1a, longSleeve: true, hat: 'short', glasses: true, height: 1.75 },
     greet: (o) => `Good evening, my son. It's... for a friend. ${orderSentence(o)} My doctor — I mean, my friend — likes it the proper way.`,
     happy: ['My friend will be very happy. Very happy indeed.', 'Hmm, my friend... has good taste.'],
@@ -53,7 +53,7 @@ export const CHARACTERS = {
     hurry: '...',
   },
   adebayo: {
-    name: 'Chief Adebayo', patience: 0.9, voice: { pitch: 0.75, rate: 0.9 },
+    name: 'Chief Adebayo', patience: 0.9, greetVoice: 'So this is the famous suya. Let me taste it myself.', voice: { pitch: 0.75, rate: 0.9 },
     look: { skin: SKIN[4], top: 0x5a2a7a, bottom: 0x5a2a7a, robe: true, robeTrim: 0xffd34d, hat: 'fila', hatColor: 0x5a2a7a, build: 1.35, height: 1.78 },
     greet: (o) => `So this is the famous suya. Let me taste it myself. ${orderSentence(o)}`,
     happy: ['Hmm. It is... edible. We shall see.', 'I will not lie, this one sweet. Hmph.'],
@@ -61,7 +61,7 @@ export const CHARACTERS = {
     loyal: ['Hmph. You are... growing on me, Aminu.', 'Aminu, the rent can wait one week. Don’t tell anybody.'],
   },
   manager: {
-    name: 'Gbam Burger manager', patience: 0.9, voice: { pitch: 1.05, rate: 1.1 },
+    name: 'Gbam Burger manager', patience: 0.9, greetVoice: 'Good evening. Area manager, Gbam Burger, across the road. Let me taste the competition.', voice: { pitch: 1.05, rate: 1.1 },
     look: { skin: SKIN[3], top: 0x1aa59a, bottom: 0x22222a, hat: 'cap', hatColor: 0x6a2aa8, badge: true, height: 1.74 },
     greet: (o) => `Good evening. Area manager, Gbam Burger, across the road. Let me taste the competition. ${orderSentence(o)}`,
     happy: ['Hmm. Your suya is... a problem for us.', 'Come and work for Gbam Burger. We pay salary, you know.'],
@@ -69,7 +69,7 @@ export const CHARACTERS = {
     leave: 'Ninety seconds at Gbam Burger. Goodbye.',
   },
   dayo: {
-    name: 'Dayo (food blogger)', patience: 1.0, voice: { pitch: 0.8, rate: 0.95 },
+    name: 'Dayo (food blogger)', patience: 1.0, greetVoice: 'Dayo again. No disguise this time. My followers want to see the new spot.', voice: { pitch: 0.8, rate: 0.95 },
     look: { skin: SKIN[2], top: 0x0c0c0c, bottom: 0x111111, hat: 'cap', hatColor: 0x050505, glasses: true, longSleeve: true, phone: true, height: 1.78 },
     greet: (o) => `Dayo again. No disguise this time. My followers want to see the new spot. ${orderSentence(o)}`,
     happy: ['This one go viral. Five stars.', 'Mallam Sani and Son... the standard is still there.'],
@@ -84,28 +84,33 @@ export const CHARACTERS = {
 
 const GENERIC = [
   { name: 'Okada rider', look: { top: 0xd8a020, bottom: 0x2a2a2a, hat: 'cap', hatColor: 0x2a4a8a } },
-  { name: 'Nurse Bisi', look: { top: 0xe8f0f8, bottom: 0xe8f0f8, longSleeve: false, hat: 'short', height: 1.65 } },
+  { name: 'Nurse Bisi', sex: 'f', look: { top: 0xe8f0f8, bottom: 0xe8f0f8, longSleeve: false, hat: 'short', height: 1.65 } },
   { name: 'Student', look: { top: 0x2a8a6a, bottom: 0x1f3a5a, hat: 'short', height: 1.7 } },
   { name: 'Security man', look: { top: 0x2a3a2a, bottom: 0x1a1a1a, hat: 'cap', hatColor: 0x1a2a1a, height: 1.8, build: 1.1 } },
-  { name: 'Aunty Joy', look: { top: 0xe85a2a, bottom: 0x6a2a8a, robe: true, robeTrim: 0x2ab0a0, hat: 'gele', hatColor: 0x2ab0a0, height: 1.63, build: 1.1 } },
+  { name: 'Aunty Joy', sex: 'f', look: { top: 0xe85a2a, bottom: 0x6a2a8a, robe: true, robeTrim: 0x2ab0a0, hat: 'gele', hatColor: 0x2ab0a0, height: 1.63, build: 1.1 } },
   { name: 'Banker', look: { top: 0xdde6f0, bottom: 0x1a1f2a, tie: 0x1a3a8a, longSleeve: true, hat: 'short', height: 1.77 } },
   { name: 'Mechanic Ola', look: { top: 0x3a4a6a, bottom: 0x3a4a6a, longSleeve: true, hat: 'short', height: 1.74, build: 1.1 } },
-  { name: 'Tailor Ronke', look: { top: 0x9a2a5a, bottom: 0x2a2a6a, hat: 'gele', hatColor: 0xe0c020, height: 1.6 } },
+  { name: 'Tailor Ronke', sex: 'f', look: { top: 0x9a2a5a, bottom: 0x2a2a6a, hat: 'gele', hatColor: 0xe0c020, height: 1.6 } },
 ];
-const GENERIC_GREETS = [
-  'Good evening o! ', 'Oga, how far? ', 'Abeg, ', 'Sannu, ', 'Evening boss. ', 'Wetin dey happen? Abeg ', 'Na you dey here today? Okay. ',
+export const GENERIC_GREETS = [
+  'Good evening o! ', 'Oga, how far? ', 'Abeg o! ', 'Sannu o! ', 'Evening boss. ', 'Wetin dey happen? Abeg! ', 'Na you dey here today? Okay. ',
 ];
-const GENERIC_HAPPY = ['Correct suya!', 'Oya, this one sweet die!', 'Thank you o! I go come back tomorrow.', 'E choke! Well done.', 'Na so! Your papa train you well.'];
+export const GENERIC_HAPPY = ['Correct suya!', 'Oya, this one sweet die!', 'Thank you o! I go come back tomorrow.', 'E choke! Well done.', 'Na so! Your papa train you well.'];
+
+export const DRIVER = {
+  greets: ['Boss, OyaGo driver! Quick quick. ', 'Tolu send me! ', 'Abeg I get trip now now. '],
+  happy: ['Sharp! I go rate you five stars.', 'Correct! Tolu no lie.'],
+  hurry: 'Passenger dey wait o! Abeg!',
+  leave: 'I don miss my trip. Na wa!',
+};
 
 // Rush customers: drivers from the (fictional) OyaGo ride app. In a hurry, but they tip.
 export function driverCharacter(rng = Math.random) {
   const look = { skin: SKIN[Math.floor(rng() * SKIN.length)], top: 0x1a8a4a, bottom: 0x22262a, hat: 'cap', hatColor: 0x1a8a4a, phone: true, height: 1.68 + rng() * 0.12 };
   return {
     name: 'OyaGo driver', patience: 0.75, tipMul: 1.6, voice: { pitch: 0.85 + rng() * 0.35, rate: 1.2 }, look,
-    greet: (o) => pick(['Boss, OyaGo driver! Quick quick. ', 'Tolu send me! ', 'Abeg I get trip now now. ']) + orderSentence(o),
-    happy: ['Sharp! I go rate you five stars.', 'Correct! Tolu no lie.'],
-    hurry: 'Passenger dey wait o! Abeg!',
-    leave: 'I don miss my trip. Na wa!',
+    greet: (o) => { const g = pick(DRIVER.greets, rng); return { text: g + orderSentence(o), voice: g.trim() }; },
+    happy: DRIVER.happy, hurry: DRIVER.hurry, leave: DRIVER.leave,
   };
 }
 
@@ -114,11 +119,29 @@ export function genericCharacter(rng = Math.random) {
   const look = { ...base.look, skin: SKIN[Math.floor(rng() * SKIN.length)] };
   const greetPre = GENERIC_GREETS[Math.floor(rng() * GENERIC_GREETS.length)];
   return {
-    name: base.name, patience: 1, voice: { pitch: 0.85 + rng() * 0.4, rate: 1 + rng() * 0.15 }, look,
-    greet: (o) => greetPre + lcFirst(orderSentence(o), greetPre),
+    name: base.name, sex: base.sex || 'm', patience: 1, voice: { pitch: 0.85 + rng() * 0.4, rate: 1 + rng() * 0.15 }, look,
+    greet: (o) => ({ text: greetPre + lcFirst(orderSentence(o), greetPre), voice: greetPre.trim() }),
     happy: GENERIC_HAPPY,
   };
 }
+
+// Lines any customer can say (recorded in a female and a male voice: see src/voicelines.js).
+export const LINES = {
+  hurry: 'Oga, abeg hurry up!',
+  nepa: 'Ah! NEPA don take light again!',
+  notBad: 'Not bad o.',
+  smallThing: 'Small thing missing.',
+  payHalf: 'I dey pay half.',
+  payNone: 'I no dey pay for this!',
+  transferCash: ['Ehn… network wahala. Abeg take cash.', 'E never land? Na the bank o! Here, cash.', 'Pending again? Okay okay, take cash.'],
+  transferPending: 'I don send am! E go soon land.',
+  transferSent: ['I don transfer am! Check the alert.', 'Sent! Check your alert, boss.'],
+  shakeOfferTutorial: 'Ehen! You be Mallam Sani pikin true true. Oya, shake me!',
+  shakeOffer: ['My guy! Shake me jare!', 'Oya, give me Lagos handshake!', 'Family! Bring hand!'],
+  snap: ['Hehe! Correct guy!', 'Na so! You sabi am!', 'Eheh! Original Lagos handshake!'],
+  noSnap: 'Hehe! Next time, snap am!',
+  shakeTimeout: ['Ah, next time o!', 'You dey busy, I understand.'],
+};
 
 // Reactions to a wrong order, keyed by the main problem.
 export const COMPLAINTS = {
@@ -157,11 +180,11 @@ export const NIGHT_INTRO = {
 
 export const NIGHT_PASS = {
   1: { speaker: 'Papa’s notebook', text: '“The first night is the hardest. The fire remembers you now.” You made it through Night 1.' },
-  2: { speaker: 'Chief Adebayo (on the phone)', text: 'I hear say you sell well tonight. Hmph. Tomorrow I go come myself. We go see.' },
-  4: { speaker: 'Mallam Sani (on the phone)', text: 'Mama Nkechi call me. She say you dey do am like me. Keep the tin growing, my son.' },
-  5: { speaker: 'Tolu', text: 'Boss! The drivers dey talk about you for the group chat. You don blow!' },
-  6: { speaker: 'Corper Fatima', text: 'Even in the dark, your suya no fail. My service year ends soon — I will tell all of Kano.' },
-  7: { speaker: 'Chief Adebayo', text: 'Their burger shop was empty tonight. Hmph. I knew this stall had something.' },
+  2: { actor: 'adebayo', speaker: 'Chief Adebayo (on the phone)', text: 'I hear say you sell well tonight. Hmph. Tomorrow I go come myself. We go see.' },
+  4: { actor: 'sani', speaker: 'Mallam Sani (on the phone)', text: 'Mama Nkechi call me. She say you dey do am like me. Keep the tin growing, my son.' },
+  5: { actor: 'tolu', speaker: 'Tolu', text: 'Boss! The drivers dey talk about you for the group chat. You don blow!' },
+  6: { actor: 'fatima', speaker: 'Corper Fatima', text: 'Even in the dark, your suya no fail. My service year ends soon — I will tell all of Kano.' },
+  7: { actor: 'adebayo', speaker: 'Chief Adebayo', text: 'Their burger shop was empty tonight. Hmph. I knew this stall had something.' },
 };
 export const SHOP_INTRO = { speaker: 'Papa’s notebook', text: '“Rent first — the rest na your own.” Everything above the target goes into Papa’s savings tin. Spend it on the stall.' };
 
@@ -184,4 +207,4 @@ export const ENDING_GOOD = [
   { actor: 'adebayo', speaker: 'Chief Adebayo', text: 'Hmph... With this kind of crowd, Gbam Burger can wait. The space is yours, Aminu. But the rent — on time!' },
   { actor: 'sani', speaker: 'Mallam Sani', text: 'I discharge myself to come see. ... Give me one stick. ... Aminu... you don use my pepper well. The spot na your own now.' },
 ];
-export const ENDING_BAD_BLOGGER = 'I’m Dayo, “Eat Lagos with Dayo”. I came to see if the son could keep his father’s standard. ... Not yet. Maybe next time.';
+export const ENDING_BAD_BLOGGER = 'I’m Dayo, “Eat Lagos with Dayo”. I came to see if the son could keep his father’s standard. ... Not yet. Maybe next time. But the street has spoken: this stall stays.';

@@ -101,6 +101,24 @@ try {
     await frames(10);
     out.lowQuality = window.SUYA.quality.level === 2 && renderer.xr.getFoveation() === 1;
     window.SUYA.quality.set(0);
+    // recorded voices: a line with a clip plays it (a generated tone stands in for a recording);
+    // a line without one falls back to the murmur
+    const { audio } = window.SUYA;
+    const sr = 22050, n = Math.round(sr * 0.4), wav = new ArrayBuffer(44 + n * 2), v = new DataView(wav);
+    const put = (o, str) => [...str].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+    put(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); put(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    put(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.sin(i * 0.06) * 8000, true);
+    const clipsBefore = audio._clips, voiceBefore = audio.voice;
+    audio._clips = { 'f|Test line.': URL.createObjectURL(new Blob([wav], { type: 'audio/wav' })) };
+    audio.voice = true;
+    audio.say(['Test line.'], { sex: 'f', pitch: 1.2 });
+    for (let i = 0; i < 60 && !audio._srcs.length; i++) await frames(1);
+    out.voicePlayed = audio._srcs.length > 0;
+    audio.say('Unrecorded line.', { sex: 'f' });
+    out.voiceFallback = audio._srcs.length === 0;
+    audio._clips = clipsBefore; audio.voice = voiceBefore;
     return out;
   });
   console.log(JSON.stringify(r));
@@ -130,6 +148,7 @@ try {
     ['fingertip poke selects a shop tile', r.pokedTile === 'tin'],
     ['fingertip poke on Buy buys it', r.pokedBuy],
     ['frame-rate safety net steps quality down in VR', r.lowQuality],
+    ['recorded voice line plays; unrecorded line murmurs', r.voicePlayed && r.voiceFallback],
     ['demo autopilot serves the tutorial order (5★)', r.demoOk && r.demoRating >= 5],
     ['Mama Nkechi\'s handshake: slap + snap with tracked hands', r.demoShake],
     ['no console errors', errors.length === 0],

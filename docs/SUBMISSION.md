@@ -76,7 +76,7 @@ the kilishi masters of Kano.
    (blackout about 1.5 min in), Night 5 (driver rush), Night 7 (the rival) or Night 8 (finale), and try the shop
    (₦30,000 added).
 7. Settings → Story mode (relaxed, default) / Rush mode (hard); One-hand play (no fanning needed);
-   Counter height (lower / normal / higher). Voices are off by default; speech bubbles always show.
+   Counter height (lower / normal / higher). Nigerian-English character voices are on by default (Settings → Voices to turn off); speech bubbles always show.
 8. Note: a pinch with your palm facing you opens the Quest system menu; the game pauses and resumes.
 
 ## Hand interactions (optional field)

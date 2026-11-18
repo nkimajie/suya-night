@@ -15,7 +15,7 @@ export const LAYOUT = {
   fan: { x: -0.29, z: -0.255 },        // woven hand fan: handle end; blade lies in front of the tray
   tin: { x: 0.52, z: -0.58 },          // tip tin (shop upgrade), behind-right of the paper (look, don't touch)
   customerZ: -1.0,
-  handZ: -0.64,                        // where customers hold out their hand / the naira
+  handZ: -0.62,                        // where customers hold out their hand / the naira (tall customers' fixed-length arms stop a little short)
   slots: [-0.32, 0.0, 0.32],
 };
 // Tray compartments left -> right: the two Night 1 meats sit nearest the grill (and the hand).

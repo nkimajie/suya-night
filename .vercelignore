@@ -2,3 +2,5 @@ docs
 tests
 dist
 node_modules
+voices-raw
+voices-test
