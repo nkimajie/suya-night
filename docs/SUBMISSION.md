@@ -23,7 +23,7 @@ https://nkimajie.github.io/suya-night/ — open it in the Meta Quest Browser and
 ## Description (≈ 480 words; Devpost suggests ≤ 500)
 
 **Inspiration**
-When the sun goes down in Lagos, the suya man lights his charcoal. The smoke, the yaji pepper, the
+When the sun goes down in Lagos, the suya man lights his charcoal. The smoke, the spicy pepper, the
 onions, the newspaper wrap, the Pidgin banter with regulars: a beloved ritual done entirely by
 hand. That made it a natural fit for hands-first VR.
 
@@ -33,7 +33,7 @@ Tonight he is in hospital, and the landlord gives Aminu three nights to prove th
 
 Customers walk up and say their order. You pinch a woven fan and wave it over the coals to keep them
 hot, lay skewers on the grill and turn them before they burn, slide the meat onto newspaper, shake
-yaji until the pepper is right ("no pepper for madam o!"), add onions or masa, lift the paper to wrap
+the pepper until it's right ("no pepper for madam o!"), add onions or masa, lift the paper to wrap
 it, hand it over, and pinch the naira out of the customer's hand. Regulars greet you with a Lagos
 handshake: slap palms, then snap. A soft ring shows what each hand will grab, so tracking feels precise.
 
@@ -81,7 +81,7 @@ the kilishi masters of Kano.
 
 ## Hand interactions (optional field)
 Every action is a natural hand gesture. Pinch the woven fan and wave it over the grill: how fast you
-wave drives the heat, the glowing coals and the embers. Pinch to pick up skewers, sides and the yaji
+wave drives the heat, the glowing coals and the embers. Pinch to pick up skewers, sides and the pepper
 shaker; turning a skewer is pinch, lift, place. Shaking is detected from direction reversals of the
 pinching hand, and the number of shakes sets none / normal / plenty pepper. Lifting the newspaper
 wraps the order, and serving is a real hand-to-hand exchange: you let go near the customer's open

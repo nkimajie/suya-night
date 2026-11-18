@@ -1,7 +1,7 @@
 # Suya Night
 
 **A hands-only, seated VR cooking story from Lagos.** Fan the charcoal, grill the skewers, shake
-the yaji, wrap it in yesterday's newspaper and hand it over — with your bare hands, in the Meta
+the pepper, wrap it in yesterday's newspaper and hand it over — with your bare hands, in the Meta
 Quest Browser, straight from a link.
 
 ![Handing a wrap of suya to Mama Nkechi with tracked hands](docs/screenshots/06-serve.png)
@@ -58,7 +58,7 @@ You cook it with your hands:
 | Grill and turn | Lay it on the grill. To turn it: pinch, lift, put it back. The gauge under each stick goes green when that side is golden and flashes red before it burns. |
 | Park it | Cooked early? Put it on the KEEP WARM end. |
 | Plate it | Drop the stick on the newspaper. |
-| Yaji pepper | Pinch the shaker and shake it over the paper: 1–5 shakes = normal, 6+ = PLENTY. |
+| Pepper | Pinch the PEPPER shaker and shake it over the paper: 1–5 shakes = normal, 6+ = PLENTY. |
 | Sides | Pinch onions, cabbage, tomatoes or masa from a bowl and drop them on the paper. |
 | Wrap | Pinch the newspaper and lift. |
 | Serve | Let go of the wrap near the customer's open hand. |
@@ -72,7 +72,7 @@ depth. On Night 1 a gold arrow and a short label sit on the next thing to touch,
 holds the full sentence.
 
 The street is alive: customers blink and their mouths move while they talk, a perfect order gets a
-cheer and a wave, meat hissing onto the grill throws steam, and each yaji shake puffs a little red cloud.
+cheer and a wave, meat hissing onto the grill throws steam, and each pepper shake puffs a little red cloud.
 
 Customers rate every order out of 5 stars: right meats, cooked golden (not raw, not burnt), the
 pepper they asked for, the right sides. Fast, perfect orders earn tips; 4★+ in a row builds a
@@ -95,7 +95,7 @@ pepper they asked for, the right sides. Fast, perfect orders earn tips; 4★+ in
 | Canopy lights | ₦5,000 | Customers wait 20% longer |
 | Hardwood charcoal | ₦6,000 | Meat cooks 15% faster, coals glow brighter |
 | Big abebe fan | ₦7,000 | Fanning 50% stronger, the fire dies 30% slower |
-| Papa's yaji blend | ₦9,000 | +10% on every order |
+| Papa's pepper blend | ₦9,000 | +10% on every order |
 | Generator | ₦12,000 | When NEPA takes the light, the gen starts in a few seconds |
 
 | Night | Title | What's new |
@@ -121,7 +121,7 @@ All captured in Meta's Quest 3 emulator (IWER) from the seated eye, with tracked
 | | |
 |---|---|
 | ![Fanning the coals](docs/screenshots/03-fan-the-coals.png) Fan the coals | ![Grilling with the tutorial arrow](docs/screenshots/04-grill.png) Grill and turn |
-| ![Shaking the yaji](docs/screenshots/05-yaji-shake.png) Shake the yaji | ![Taking the naira](docs/screenshots/07-paid.png) Get paid |
+| ![Shaking the pepper](docs/screenshots/05-yaji-shake.png) Shake the pepper | ![Taking the naira](docs/screenshots/07-paid.png) Get paid |
 | ![Lagos handshake](docs/screenshots/13-handshake.png) Mama Nkechi's Lagos handshake: slap, then snap | ![Every upgrade on the stall](docs/screenshots/11-grown-stall.png) Every upgrade on the stall, the rival across the road |
 | ![NEPA blackout](docs/screenshots/08-blackout.png) NEPA takes the light | ![The landlord](docs/screenshots/02-story-landlord.png) The landlord's ultimatum |
 | ![Shop](docs/screenshots/09-shop.png) Papa's savings tin | ![Map](docs/screenshots/10-map.png) The road ahead |
@@ -163,7 +163,7 @@ URL options (dev server):
 | Option | What it does |
 |---|---|
 | `?emulate=1` | Meta's IWER Quest 3 emulator with tracked hands, in a normal desktop browser. Click **Play as Guest**. |
-| `?emulate=1&demo=1` | The game plays itself with emulated hands (fan, grill, turn, yaji, sides, wrap, serve, get paid). Add `&night=2` to start on another night. Used to record the trailer without a headset. |
+| `?emulate=1&demo=1` | The game plays itself with emulated hands (fan, grill, turn, pepper, sides, wrap, serve, get paid). Add `&night=2` to start on another night. Used to record the trailer without a headset. |
 | `?demo=1` | Same autopilot with the desktop pointer (works on the deployed build too). |
 | `?cam=head` | Desktop view from the seated eye. |
 | `?cam=street&demo=1` | Slow camera sweep along the street side of the stall: B-roll. |
@@ -177,7 +177,7 @@ URL options (dev server):
 index.html          landing card + Play as Guest button (no framework)
 src/main.js         renderer, WebXR session (immersive-vr + hand-tracking), recentering, frame loop, demo/camera modes
 src/input.js        hands / controllers / mouse  →  one Pointer API: pos, tip, pinching, pinchStarted, vel, candidates()
-src/kitchen.js      grill + coals, skewers + cooking, tray, newspaper, yaji shake detection, sides, wrapping, aim rings
+src/kitchen.js      grill + coals, skewers + cooking, tray, newspaper, pepper shake detection, sides, wrapping, aim rings
 src/customers.js    procedural people (merged per body part), speech bubbles, order cards, patience, cash / transfer
 src/game.js         state machine: menu → story → night → results → shop / map; tutorial, scoring, loyalty, events, pause
 src/levels.js       stages and nights: tuning, scripted arrivals, events, tips, star rules
@@ -215,7 +215,7 @@ src/text.js         canvas-texture panels and text fitting
 `npm test` runs two headless-Chrome suites and fails on any console error:
 
 - `tests/smoke.mjs` — plays the whole Night 1 tutorial order through the scripted pointer, checks
-  fanning, cooking, flipping, yaji, sides, wrap, serve and payment; the Night 2 blackout; Night 3
+  fanning, cooking, flipping, pepper, sides, wrap, serve and payment; the Night 2 blackout; Night 3
   results; shop, map, stars, savings, generator, loyalty, Act 1 → Act 2; save migration; draw-call and
   light budgets; seated reach of every interactable; GPU memory over 24 customers; pause regressions.
 - `tests/xr.mjs` — enters VR in Meta's IWER Quest 3 emulator and uses emulated hand joints to grab,

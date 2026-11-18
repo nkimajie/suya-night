@@ -132,7 +132,7 @@ try {
     ['06-serve', '1-hand-it-over', 'Hand the wrap to the customer — then pinch the naira from her hand'],
     ['13-handshake', '2-lagos-handshake', 'Regulars greet you with a Lagos handshake: slap palms, then snap'],
     ['03-fan-the-coals', '3-fan-the-coals', 'Pinch the woven fan and wave it: the coals flare and the embers fly'],
-    ['05-yaji-shake', '4-shake-the-yaji', 'Shake the yaji: 1–5 shakes = normal, 6+ = PLENTY pepper'],
+    ['05-yaji-shake', '4-shake-the-yaji', 'Shake the pepper: 1–5 shakes = normal, 6+ = PLENTY'],
     ['08-blackout', '5-nepa-blackout', 'NEPA takes the light: cook by lantern while the queue waits'],
     ['11-grown-stall', '6-grow-the-stall', 'Grow the business: every upgrade you buy appears on your stall'],
     ['09-shop', '7-papas-savings', 'Rent first, the rest na your own: spend Papa’s savings in the shop'],

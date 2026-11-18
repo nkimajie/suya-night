@@ -381,8 +381,8 @@ export class Kitchen {
     this.shakerParts.label.redraw((c, w, h) => {
       c.fillStyle = papa ? '#1a1208' : '#f7d36a'; c.fillRect(0, 0, w, h);
       c.fillStyle = papa ? '#ffd34d' : '#7a1408'; c.textAlign = 'center';
-      if (papa) { c.font = FONT(h * 0.3, 900); c.fillText('PAPA’S', w / 2, h * 0.38); c.font = FONT(h * 0.42, 900); c.fillText('YAJI', w / 2, h * 0.84); }
-      else { c.font = FONT(h * 0.55, 900); c.fillText('YAJI', w / 2, h * 0.72); }
+      if (papa) { c.font = FONT(h * 0.3, 900); c.fillText('PAPA’S', w / 2, h * 0.38); fitFont(c, 'PEPPER', w * 0.94, h * 0.42, 900); c.fillText('PEPPER', w / 2, h * 0.84); }
+      else { fitFont(c, 'PEPPER', w * 0.94, h * 0.55, 900); c.fillText('PEPPER', w / 2, h * 0.72); }
     });
   }
 

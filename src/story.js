@@ -182,6 +182,6 @@ export const NIGHT_FAIL = {
 export const ENDING_GOOD = [
   { actor: 'blackcap', speaker: 'Man in the black cap', text: 'I’m Dayo. People online know me as “Eat Lagos with Dayo”. I’ve been coming here three nights to see if the young man could keep his father’s standard. He did. My review goes up tonight.' },
   { actor: 'adebayo', speaker: 'Chief Adebayo', text: 'Hmph... With this kind of crowd, Gbam Burger can wait. The space is yours, Aminu. But the rent — on time!' },
-  { actor: 'sani', speaker: 'Mallam Sani', text: 'I discharge myself to come see. ... Give me one stick. ... Aminu... you don use my yaji well. The spot na your own now.' },
+  { actor: 'sani', speaker: 'Mallam Sani', text: 'I discharge myself to come see. ... Give me one stick. ... Aminu... you don use my pepper well. The spot na your own now.' },
 ];
 export const ENDING_BAD_BLOGGER = 'I’m Dayo, “Eat Lagos with Dayo”. I came to see if the son could keep his father’s standard. ... Not yet. Maybe next time.';

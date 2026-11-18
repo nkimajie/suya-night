@@ -272,7 +272,7 @@ function drawStallSign(c, w, h, son = false) {
   const name = son ? 'MALLAM SANI & SON' : 'MALLAM SANI SUYA';
   fitFont(c, name, w * 0.86, h * 0.42, 900);
   c.fillText(name, w / 2, h * 0.52);
-  c.fillStyle = '#fff'; c.font = FONT(h * 0.2, 700); c.fillText('ALLEN AVENUE • HOT YAJI • SINCE 1996', w / 2, h * 0.82);
+  c.fillStyle = '#fff'; c.font = FONT(h * 0.2, 700); c.fillText('ALLEN AVENUE • HOT PEPPER • SINCE 1996', w / 2, h * 0.82);
 }
 
 function buildLantern(glowTex) {

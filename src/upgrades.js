@@ -5,7 +5,7 @@ export const UPGRADES = [
   { id: 'lights', name: 'Canopy lights', price: 5000, desc: 'Bulbs strung across the stall: customers wait 20% longer.' },
   { id: 'charcoal', name: 'Hardwood charcoal', price: 6000, desc: 'Hotter, brighter coals: meat cooks 15% faster.' },
   { id: 'fan', name: 'Big abebe fan', price: 7000, desc: 'A bigger woven fan: fanning 50% stronger, fire dies 30% slower.' },
-  { id: 'yaji', name: 'Papa’s yaji blend', price: 9000, desc: 'The secret recipe in a gold-cap shaker: +10% on every order.' },
+  { id: 'yaji', name: 'Papa’s pepper blend', price: 9000, desc: 'The secret recipe in a gold-cap shaker: +10% on every order.' },
   { id: 'generator', name: 'Generator', price: 12000, desc: 'When NEPA takes light, the gen starts in a few seconds.' },
 ];
 export const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));

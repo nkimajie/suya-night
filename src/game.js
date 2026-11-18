@@ -23,7 +23,7 @@ const TUTORIAL = [
   { ev: 'place', short: 'Pinch a BEEF stick', text: 'Pinch a BEEF stick from the tray and lay it on the grill.', at: (k) => k.anchor('tray', 'beef'), r: 0.035 },
   { ev: 'flip', short: 'Lift & put back = turn it', text: 'Turn it: pinch the stick, lift, put it back. Gauge green = golden.', at: (k) => k.anchor('grillSkewer'), r: 0.06 },
   { ev: 'toPaper', short: 'Drop it on the paper', text: 'Both sides golden? Drop the stick on the newspaper.', at: (k) => k.anchor('paper'), r: 0.1 },
-  { ev: 'pepperPlenty', short: 'Shake YAJI 6 times', text: 'Pinch the YAJI shaker, shake it over the paper. Plenty pepper = 6+ shakes.', at: (k) => k.anchor('shaker'), r: 0.04 },
+  { ev: 'pepperPlenty', short: 'Shake PEPPER 6 times', text: 'Pinch the PEPPER shaker, shake it over the paper. Plenty pepper = 6+ shakes.', at: (k) => k.anchor('shaker'), r: 0.04 },
   { ev: 'side', short: 'ONIONS on the paper', text: 'Pinch ONIONS from the bowl and drop them on the paper.', at: (k) => k.anchor('bowl', 'onions'), r: 0.05 },
   { ev: 'wrap', short: 'Pinch paper & lift = wrap', text: 'Pinch the newspaper and lift it to wrap the suya.', at: (k) => k.anchor('paper'), r: 0.1 },
   { ev: 'serve', short: 'Give it to Mama Nkechi', text: 'Hand the wrap to Mama Nkechi: let go near her open hand.', at: (k, g) => g.customerHandAnchor(), r: 0.07 },
@@ -422,7 +422,7 @@ export class Game {
   onKitchenEvent(name, d) {
     if (name === 'pepper') {
       if (d.level === 'plenty') this.tutorialEvent('pepperPlenty');
-      this.showToast(`Yaji: ${d.shakes} shake${d.shakes > 1 ? 's' : ''} = ${d.level === 'plenty' ? 'PLENTY pepper' : 'normal pepper'}${d.level === 'normal' ? ` (${6 - d.shakes} more for plenty)` : ''}`, '#ff9a5a');
+      this.showToast(`Pepper: ${d.shakes} shake${d.shakes > 1 ? 's' : ''} = ${d.level === 'plenty' ? 'PLENTY pepper' : 'normal pepper'}${d.level === 'normal' ? ` (${6 - d.shakes} more for plenty)` : ''}`, '#ff9a5a');
       return;
     }
     if (name === 'heatLow') { if (this.state === 'playing') this.showToast('Fire dey die! Grab the fan and wave it over the grill', '#ffb04a'); return; }

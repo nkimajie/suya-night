@@ -20,7 +20,7 @@ Judges use a Quest 3 or 3S and expect ≥ 60 fps. Open the Pages URL in the Ques
 - [ ] "Play as Guest" → allow hand tracking → the stall appears in front at a comfortable seated height.
 - [ ] Menu buttons respond to a fingertip poke and to a pinch.
 - [ ] Fan: pinching the woven fan and waving it over the grill fills the fire bar and throws embers.
-- [ ] Tray, grill turn, paper, yaji (6 shakes = PLENTY), sides, wrap, hand-over and naira all work first try.
+- [ ] Tray, grill turn, paper, pepper (6 shakes = PLENTY), sides, wrap, hand-over and naira all work first try.
 - [ ] The aim ring shows what each hand will grab; it does not flicker annoyingly.
 - [ ] Pause on the counter edge is easy to poke and is not hit by accident while cooking.
 - [ ] Taking the headset off pauses; putting it back on resumes on the pause board.
@@ -51,7 +51,7 @@ also starts the audio), and record:
 
 | Clip | URL (dev server, http://localhost:5173/…) | What you get |
 |---|---|---|
-| A. Full tutorial | `?emulate=1&demo=1` (fresh save: Settings → Reset first, or a private window) | Menu, story cards, Night 1: fan, grill, turn, paper, yaji, onions, wrap, serve, naira |
+| A. Full tutorial | `?emulate=1&demo=1` (fresh save: Settings → Reset first, or a private window) | Menu, story cards, Night 1: fan, grill, turn, paper, pepper, onions, wrap, serve, naira |
 | B. Rush + blackout | `?emulate=1&demo=1&night=2` | Two customers; NEPA takes the light ~1.5 min in |
 | C. Driver rush | `?emulate=1&demo=1&night=5` | OyaGo drivers from ~1:20 |
 | D. Grow the stall | `?emulate=1&demo=1&scene=shop` | Buys each upgrade; each appears on the stall |
@@ -65,7 +65,7 @@ Suggested cut (lead with the best footage; judges may stop watching early):
 | 0:00–0:08 | Close on hands fanning the coals, embers flying, sizzle (clip A). No title card first. |
 | 0:08–0:14 | Title: SUYA NIGHT — "Hands only. Seated. Plays from a link." |
 | 0:14–0:30 | Story: Papa in hospital, Chief Adebayo's 3-night ultimatum (clip A story cards, with subtitles). |
-| 0:30–1:15 | Mama Nkechi's order as a montage of 2-second cuts: tray, grill, turn, paper, yaji, onions, wrap, hand over, take the naira (clip A). |
+| 0:30–1:15 | Mama Nkechi's order as a montage of 2-second cuts: tray, grill, turn, paper, pepper, onions, wrap, hand over, take the naira (clip A). |
 | 1:15–1:45 | Friday rush: two customers, "no pepper for madam", NEPA blackout by lantern (clip B). |
 | 1:45–2:15 | Grow the business: stars and savings, buying upgrades that appear on the stall, a regular becoming FAMILY, a transfer "credit alert", the Gbam Burger rival (clips D, E). |
 | 2:15–2:35 | Street B-roll + the wedding-invitation cliffhanger (clip F). |
